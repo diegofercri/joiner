@@ -1,0 +1,13 @@
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    environment:
+      - ADMIN_KEY=${ADMIN_KEY}
+    volumes:
+      - cena-data:/data
+    expose:
+      - "3000"
+
+volumes:
+  cena-data:
