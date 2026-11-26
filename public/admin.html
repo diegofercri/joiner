@@ -54,7 +54,6 @@
   .chips span { font-size: .85rem; padding: 3px 9px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); }
   .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
   .line:first-child { border-top: 0; }
-  .status { padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); margin: 8px 0; }
   .opt { display: flex; justify-content: space-between; gap: 8px; font-size: .92rem; padding: 3px 0; }
   .opt span:first-child { min-width: 0; overflow-wrap: anywhere; }
   .toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 608px; margin: 0 auto; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--bad); color: var(--bad); z-index: 10; }
@@ -171,7 +170,7 @@ function renderSanta() {
   const box = $('tab-amigo');
   const options = data.people.map((p) => `<option value="${p.code}">${esc(label(p))}</option>`).join('');
   box.innerHTML = `<h2>Amigo invisible</h2>
-    <label class="check"><input type="checkbox" id="sEnabled" ${s.enabled ? 'checked' : ''}> Activado (se ve en la web y la gente puede apuntarse)</label>
+    <label class="check"><input type="checkbox" id="sEnabled" ${s.enabled ? 'checked' : ''}> Activado (visible para todos)</label>
     <div class="two">
       <div class="field"><label for="sBudget">Presupuesto</label><input id="sBudget" maxlength="60" placeholder="20 €"></div>
       <div class="field"><label for="sDate">Fecha de entrega</label><input id="sDate" maxlength="60" placeholder="En la cena"></div>
@@ -187,9 +186,9 @@ function renderSanta() {
     <button class="ghost" id="exAdd" style="margin-top:8px">Añadir exclusión</button>
 
     <h3>Sorteo</h3>
-    <div class="status">${s.drawn
+    <p class="muted">${s.drawn
       ? 'El sorteo está hecho. Cada persona ve en la web a quién le toca. Aquí no se muestra a nadie, tampoco a ti.'
-      : 'Todavía no se ha sorteado. Mientras tanto la gente puede apuntarse y desapuntarse.'}</div>
+      : 'Todavía no se ha sorteado. Mientras tanto la gente puede apuntarse y desapuntarse.'}</p>
     ${s.drawn
       ? '<button class="ghost" id="sReset">Reiniciar sorteo</button>'
       : `<button id="sDraw" ${s.joined.length < 3 ? 'disabled' : ''}>Hacer el sorteo</button>`}`;
