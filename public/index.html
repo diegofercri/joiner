@@ -15,6 +15,7 @@
       --si: #5cc98a; --si-bg: #1f3a2a; --reg: #e5a94b; --reg-bg: #3d3020; --no: #ec6b5e; --no-bg: #432422; --accent: #e07a6a; }
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
   h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--accent); }
@@ -30,9 +31,9 @@
 
   .month { margin-top: 14px; }
   .month h3 { font-size: .95rem; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
-  .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+  .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
   .dow { text-align: center; font-size: .75rem; color: var(--muted); }
-  .day { aspect-ratio: 1; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+  .day { height: clamp(40px, 11vw, 64px); min-width: 0; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
     display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .95rem; cursor: pointer; padding: 0; user-select: none; }
   .day .n { font-weight: 600; }
   .day .s { font-size: .7rem; line-height: 1; margin-top: 2px; }
