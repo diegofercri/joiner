@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cena de Navidad</title>
+<title>Navidad con los colegas</title>
 <style>
   :root {
     --bg: #f7f3ee; --card: #fff; --ink: #2a2622; --muted: #6f675f; --line: #e6dfd6;
@@ -76,12 +76,34 @@
   .who span:last-child { min-width: 0; overflow-wrap: anywhere; }
   .saved { font-size: .8rem; color: var(--si); height: 1em; }
   .hidden { display: none; }
+
+  .tabs { display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .tabs button { flex: 1; min-width: 0; padding: 9px 4px; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+  .btn { padding: 11px 14px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .facts { display: grid; gap: 4px; margin: 0 0 12px; font-size: .95rem; }
+  .gift { text-align: center; padding: 18px 10px; border-radius: 12px; background: var(--si-bg); color: var(--si); margin: 8px 0 4px; }
+  .gift b { display: block; font-size: 1.5rem; color: var(--ink); margin-top: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chips span { font-size: .85rem; padding: 3px 9px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); }
+  .poll h3 { margin: 0 0 4px; font-size: 1.05rem; }
+  .opt { display: block; position: relative; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; }
+  .opt .bar { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--si) 18%, transparent); }
+  .opt .row { position: relative; display: flex; align-items: center; gap: 10px; }
+  .opt input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
+  .opt .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+  .opt .num { font-weight: 700; font-size: .9rem; }
+  .opt .names { position: relative; font-size: .8rem; color: var(--muted); margin: 4px 0 0 28px; overflow-wrap: anywhere; }
+  .opt.closed { cursor: default; }
+  .pill { display: inline-block; font-size: .75rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Cena de Navidad 🎄</h1>
-  <p class="muted">Marca qué días puedes cenar y mira qué días le vienen bien a todos.</p>
+  <h1>Navidad con los colegas 🎄</h1>
+  <p class="muted" id="subtitle">Marca qué días puedes cenar y mira qué días le vienen bien a todos.</p>
 
   <section id="login" class="card hidden">
     <h2>Entra con tu código</h2>
@@ -94,6 +116,13 @@
   </section>
 
   <section id="app" class="hidden">
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="cena">Cena</button>
+      <button role="tab" data-tab="amigo">Amigo invisible</button>
+      <button role="tab" data-tab="votaciones">Votaciones</button>
+    </nav>
+
+    <div id="tab-cena">
     <div class="card">
       <h2 id="hello">Hola</h2>
       <p class="muted">Toca un día para ir cambiando: <b>sí</b> → <b>regular</b> → <b>no</b> → sin marcar. Se guarda solo.</p>
@@ -125,6 +154,15 @@
       <div id="heat" class="heat"></div>
       <div id="detail" class="detail hidden"></div>
     </div>
+    </div>
+
+    <div id="tab-amigo" class="hidden">
+      <div class="card" id="santa"></div>
+    </div>
+
+    <div id="tab-votaciones" class="hidden">
+      <div id="polls"></div>
+    </div>
   </section>
 </main>
 <script>
@@ -133,6 +171,12 @@ const NEXT = { '': 'si', si: 'regular', regular: 'no', no: '' };
 let code = '';
 let state = null;
 let selected = null;
+const SUBTITLES = {
+  cena: 'Marca qué días puedes cenar y mira qué días le vienen bien a todos.',
+  amigo: 'Apúntate al amigo invisible y, cuando Diego haga el sorteo, verás aquí a quién te toca regalar.',
+  votaciones: 'Vota en las encuestas abiertas. Puedes cambiar tu voto hasta que se cierren.',
+};
+let tab = ['cena', 'amigo', 'votaciones'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'cena';
 
 try { code = new URLSearchParams(location.search).get('c') || localStorage.getItem('code') || ''; } catch {}
 
@@ -175,7 +219,7 @@ function renderCalendar(container, cellFor) {
   }
 }
 
-function render() {
+function renderCena() {
   $('hello').textContent = `Hola, ${state.me.name}`;
   const me = state.people.find((p) => p.me);
 
@@ -236,6 +280,110 @@ function render() {
   det.classList.remove('hidden');
 }
 
+function render() {
+  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+  for (const t of ['cena', 'amigo', 'votaciones']) $('tab-' + t).classList.toggle('hidden', t !== tab);
+  $('subtitle').textContent = SUBTITLES[tab];
+  renderCena();
+  renderSanta();
+  renderPolls();
+}
+
+function renderSanta() {
+  const s = state.santa;
+  const box = $('santa');
+  const facts = [s.budget && `<div>💶 Presupuesto: <b>${esc(s.budget)}</b></div>`, s.date && `<div>🎁 Entrega: <b>${esc(s.date)}</b></div>`].filter(Boolean).join('');
+  const list = s.participants.length ? `<div class="chips">${s.participants.map((n) => `<span>${esc(n)}</span>`).join('')}</div>` : '<p class="muted">Todavía no se ha apuntado nadie.</p>';
+  if (!s.enabled) {
+    box.innerHTML = '<h2>Amigo invisible</h2><p class="muted">Diego todavía no ha abierto el amigo invisible. Cuando lo haga, podrás apuntarte aquí.</p>';
+    return;
+  }
+  if (s.drawn) {
+    box.innerHTML = `<h2>Amigo invisible</h2>${facts ? `<div class="facts">${facts}</div>` : ''}` + (s.gift
+      ? `<p class="muted">El sorteo ya está hecho. Solo tú puedes ver esto:</p>
+         <div class="gift" id="giftBox">Te toca regalar a<b id="giftName">••••••</b></div>
+         <button class="btn ghost" id="revealGift">Mostrar a quién</button>`
+      : '<p class="muted">El sorteo ya está hecho y no te apuntaste.</p>') +
+      `<p class="muted" style="margin-top:14px">Participan ${s.participants.length}:</p>${list}`;
+    const btn = $('revealGift');
+    if (btn) btn.onclick = () => {
+      const hidden = $('giftName').textContent === '••••••';
+      $('giftName').textContent = hidden ? s.gift : '••••••';
+      btn.textContent = hidden ? 'Ocultar' : 'Mostrar a quién';
+    };
+    return;
+  }
+  box.innerHTML = `<h2>Amigo invisible</h2>${facts ? `<div class="facts">${facts}</div>` : ''}
+    <p class="muted">${s.joined ? 'Estás apuntado. Cuando Diego haga el sorteo, aquí verás a quién te toca regalar.' : '¿Te apuntas? Puedes cambiarlo hasta que se haga el sorteo.'}</p>
+    <button class="btn ${s.joined ? 'ghost' : ''}" id="joinBtn">${s.joined ? 'Desapuntarme' : 'Apuntarme'}</button>
+    <p class="muted" style="margin-top:14px">Apuntados (${s.participants.length}):</p>${list}`;
+  $('joinBtn').onclick = (e) => { e.target.disabled = true; post('/api/santa/join', { join: !s.joined }); };
+}
+
+function renderPolls() {
+  const box = $('polls');
+  if (!state.polls.length) {
+    box.innerHTML = '<div class="card"><h2>Votaciones</h2><p class="muted">No hay ninguna votación todavía.</p></div>';
+    return;
+  }
+  const sorted = [...state.polls].sort((a, b) => a.closed - b.closed);
+  box.innerHTML = '';
+  for (const p of sorted) {
+    const card = document.createElement('div');
+    card.className = 'card poll';
+    const max = Math.max(1, ...p.options.map((o) => o.count));
+    const when = p.closesAt ? new Date(p.closesAt).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    card.innerHTML = `<h3>${esc(p.question)}</h3>
+      <div class="muted" style="margin-bottom:4px">
+        <span class="pill">${p.multiple ? 'Varias opciones' : 'Una opción'}</span>
+        <span class="pill">${p.anonymous ? 'Anónima' : 'Se ve quién vota'}</span>
+        ${p.closed ? '<span class="pill">Cerrada</span>' : when ? `<span class="pill">Cierra ${esc(when)}</span>` : ''}
+      </div>
+      <div class="muted">${p.voters} ${p.voters === 1 ? 'persona ha votado' : 'personas han votado'}</div>`;
+    for (const o of p.options) {
+      const lab = document.createElement('label');
+      lab.className = 'opt' + (p.closed ? ' closed' : '');
+      const checked = p.mine.includes(o.id);
+      lab.innerHTML = `<span class="bar" style="width:${Math.round((o.count / max) * 100)}%"></span>
+        <span class="row"><input type="${p.multiple ? 'checkbox' : 'radio'}" name="p-${p.id}" ${checked ? 'checked' : ''} ${p.closed ? 'disabled' : ''}>
+        <span class="txt">${esc(o.text)}</span><span class="num">${o.count}</span></span>
+        ${o.names && o.names.length ? `<div class="names">${o.names.map(esc).join(', ')}</div>` : ''}`;
+      lab.querySelector('input').onchange = (e) => {
+        const ids = p.multiple
+          ? (e.target.checked ? [...p.mine, o.id] : p.mine.filter((id) => id !== o.id))
+          : [o.id];
+        post('/api/poll/vote', { pollId: p.id, optionIds: ids });
+      };
+      card.appendChild(lab);
+    }
+    if (!p.closed && p.mine.length && !p.multiple) {
+      const clear = document.createElement('button');
+      clear.className = 'link';
+      clear.style.marginTop = '10px';
+      clear.textContent = 'Quitar mi voto';
+      clear.onclick = () => post('/api/poll/vote', { pollId: p.id, optionIds: [] });
+      card.appendChild(clear);
+    }
+    box.appendChild(card);
+  }
+}
+
+async function post(url, body) {
+  const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, ...body }) });
+  if (r.ok) state = await r.json();
+  else { try { alertBox((await r.json()).error); } catch {} try { await load(); } catch {} }
+  render();
+}
+
+function alertBox(msg) {
+  const el = document.createElement('div');
+  el.className = 'card';
+  el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;max-width:608px;margin:0 auto;border-color:var(--no);color:var(--no);z-index:10';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
 function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 
 async function load() {
@@ -261,7 +409,7 @@ async function enter(c) {
   try {
     await load();
     try { localStorage.setItem('code', code); } catch {}
-    if (location.search) history.replaceState(null, '', location.pathname);
+    if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     $('login').classList.add('hidden');
     $('app').classList.remove('hidden');
     render();
@@ -271,6 +419,10 @@ async function enter(c) {
     $('login').classList.remove('hidden');
     $('loginErr').textContent = c ? 'Ese código no existe. Revísalo con Diego.' : '';
   }
+}
+
+for (const b of document.querySelectorAll('.tabs button')) {
+  b.onclick = () => { tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); render(); window.scrollTo(0, 0); };
 }
 
 $('loginForm').onsubmit = (e) => { e.preventDefault(); enter($('codeInput').value); };
