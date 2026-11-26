@@ -3,36 +3,58 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cena: administración</title>
+<title>Administración</title>
 <style>
-  :root { --bg: #f7f3ee; --card: #fff; --ink: #2a2622; --muted: #6f675f; --line: #e6dfd6; --accent: #8e2a2a; --ok: #2f8f5b; }
+  :root { --bg: #f7f3ee; --card: #fff; --ink: #2a2622; --muted: #6f675f; --line: #e6dfd6; --accent: #8e2a2a; --ok: #2f8f5b; --bad: #c0392b; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #1b1917; --card: #262320; --ink: #f1ece6; --muted: #a59d94; --line: #3a3631; --accent: #e07a6a; --ok: #5cc98a; }
+    :root { --bg: #1b1917; --card: #262320; --ink: #f1ece6; --muted: #a59d94; --line: #3a3631; --accent: #e07a6a; --ok: #5cc98a; --bad: #ec6b5e; }
   }
   * { box-sizing: border-box; }
-  button, a, input, li { touch-action: manipulation; }
+  button, a, input, li, select, label { touch-action: manipulation; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
   h1 { font-size: 1.5rem; margin: 0 0 12px; color: var(--accent); }
+  h2 { font-size: 1.1rem; margin: 0 0 8px; }
+  h3 { font-size: 1rem; margin: 14px 0 6px; }
+  p { margin: 0 0 10px; }
   .muted { color: var(--muted); font-size: .92rem; }
   .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 16px; }
-  input, button { font: inherit; }
-  input { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  input, button, select, textarea { font: inherit; }
+  input:not([type=checkbox]), select, textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
+  textarea { min-height: 96px; resize: vertical; }
   button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
   button.ghost { background: none; color: var(--muted); border: 1px solid var(--line); font-weight: 400; }
+  button.small { padding: 6px 10px; font-size: .85rem; }
   .row { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 12px 0; border-top: 1px solid var(--line); }
   .row:first-child { border-top: 0; }
   .top { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
   code { font-size: 1rem; font-weight: 600; }
   .ok { color: var(--ok); font-size: .85rem; }
-  .actions { display: flex; gap: 6px; }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .hidden { display: none; }
-  .err { color: #c0392b; min-height: 1.2em; margin-top: 6px; }
+  .err { color: var(--bad); min-height: 1.2em; margin-top: 6px; }
+  .tabs { display: flex; gap: 4px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .tabs button { flex: 1; min-width: 0; padding: 9px 4px; border-radius: 9px; background: none; color: var(--muted); font-size: .9rem; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+  .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
+  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  .field { margin-top: 10px; }
+  .field label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 4px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chips span { font-size: .85rem; padding: 3px 9px; border-radius: 99px; background: var(--bg); border: 1px solid var(--line); }
+  .line { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+  .line:first-child { border-top: 0; }
+  .status { padding: 10px 12px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); margin: 8px 0; }
+  .opt { display: flex; justify-content: space-between; gap: 8px; font-size: .92rem; padding: 3px 0; }
+  .opt span:first-child { min-width: 0; overflow-wrap: anywhere; }
+  .toast { position: fixed; left: 16px; right: 16px; bottom: 16px; max-width: 608px; margin: 0 auto; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--bad); color: var(--bad); z-index: 10; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Administración de la cena</h1>
+  <h1>Administración</h1>
 
   <section id="login" class="card">
     <p class="muted">Introduce la clave de administración.</p>
@@ -41,31 +63,79 @@
   </section>
 
   <section id="panel" class="hidden">
-    <div class="card">
+    <nav class="tabs">
+      <button data-tab="personas">Personas</button>
+      <button data-tab="amigo">Amigo invisible</button>
+      <button data-tab="votaciones">Votaciones</button>
+    </nav>
+
+    <div id="tab-personas" class="card">
       <p class="muted">Pon un nombre a cada código y pásale a cada persona su enlace por privado. El enlace general sin código es <b id="base"></b>: quien entre ahí tendrá que escribir su código.</p>
       <div id="list"></div>
       <button id="add" style="margin-top:10px">Añadir código</button>
+    </div>
+
+    <div id="tab-amigo" class="card hidden"></div>
+
+    <div id="tab-votaciones" class="hidden">
+      <div class="card">
+        <h2>Nueva votación</h2>
+        <div class="field"><label for="pq">Pregunta</label><input id="pq" maxlength="200" placeholder="¿Dónde cenamos?"></div>
+        <div class="field"><label for="po">Opciones, una por línea</label><textarea id="po" placeholder="Restaurante A&#10;Restaurante B&#10;En casa de alguien"></textarea></div>
+        <label class="check"><input type="checkbox" id="pm"> Se pueden elegir varias opciones</label>
+        <label class="check"><input type="checkbox" id="pa"> Votos anónimos (solo se ven los totales)</label>
+        <div class="field"><label for="pc">Cierre (opcional)</label><input id="pc" type="datetime-local"></div>
+        <button id="createPoll" style="margin-top:12px">Crear votación</button>
+      </div>
+      <div id="pollList"></div>
     </div>
   </section>
 </main>
 <script>
 const $ = (id) => document.getElementById(id);
 let key = '';
+let data = null;
+let tab = 'personas';
 try { key = sessionStorage.getItem('adminKey') || ''; } catch {}
 $('base').textContent = location.origin;
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const label = (p) => p.name || `Sin nombre (${p.code})`;
+
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
 
 async function api(path, body) {
   const r = body
     ? await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ key, ...body }) })
     : await fetch(path + '?key=' + encodeURIComponent(key));
-  if (!r.ok) throw new Error((await r.json()).error);
-  return r.json();
+  const json = await r.json();
+  if (!r.ok) throw new Error(json.error);
+  return json;
 }
 
-function render(list) {
+async function act(path, body) {
+  try { data = await api(path, body); render(); return true; }
+  catch (e) { toast(e.message); return false; }
+}
+
+function render() {
+  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+  for (const t of ['personas', 'amigo', 'votaciones']) $('tab-' + t).classList.toggle('hidden', t !== tab);
+  renderPeople();
+  renderSanta();
+  renderPolls();
+}
+
+function renderPeople() {
   const box = $('list');
   box.innerHTML = '';
-  for (const p of list) {
+  for (const p of data.people) {
     const link = `${location.origin}/?c=${p.code}`;
     const row = document.createElement('div');
     row.className = 'row';
@@ -76,31 +146,108 @@ function render(list) {
     row.querySelector('.ok').textContent = p.answered ? `Ha marcado ${p.answered} días` : 'Sin responder';
     const input = row.querySelector('input');
     input.value = p.name;
-    input.onchange = async () => { render(await api('/api/admin/name', { code: p.code, name: input.value })); };
+    input.onchange = () => act('/api/admin/name', { code: p.code, name: input.value });
     row.querySelector('.copy').onclick = async (e) => {
       try { await navigator.clipboard.writeText(link); e.target.textContent = 'Copiado ✓'; }
       catch { prompt('Copia el enlace:', link); }
     };
-    row.querySelector('.del').onclick = async () => {
-      if (confirm(`¿Borrar el código ${p.code} y sus respuestas?`)) render(await api('/api/admin/delete', { code: p.code }));
+    row.querySelector('.del').onclick = () => {
+      if (confirm(`¿Borrar el código ${p.code} y todas sus respuestas?`)) act('/api/admin/delete', { code: p.code });
     };
     box.appendChild(row);
   }
 }
 
+function renderSanta() {
+  const s = data.santa;
+  const box = $('tab-amigo');
+  const options = data.people.map((p) => `<option value="${p.code}">${esc(label(p))}</option>`).join('');
+  box.innerHTML = `<h2>Amigo invisible</h2>
+    <label class="check"><input type="checkbox" id="sEnabled" ${s.enabled ? 'checked' : ''}> Activado (se ve en la web y la gente puede apuntarse)</label>
+    <div class="two">
+      <div class="field"><label for="sBudget">Presupuesto</label><input id="sBudget" maxlength="60" placeholder="20 €"></div>
+      <div class="field"><label for="sDate">Fecha de entrega</label><input id="sDate" maxlength="60" placeholder="En la cena"></div>
+    </div>
+
+    <h3>Apuntados (${s.joined.length})</h3>
+    ${s.joined.length ? `<div class="chips">${s.joined.map((p) => `<span>${esc(p.name)}</span>`).join('')}</div>` : '<p class="muted">Nadie todavía.</p>'}
+
+    <h3>Exclusiones</h3>
+    <p class="muted">Parejas que no pueden regalarse entre sí, en ningún sentido.</p>
+    <div id="exList">${s.exclusions.map((x) => `<div class="line"><span>${esc(x.aName)} ↔ ${esc(x.bName)}</span><button class="ghost small" data-a="${x.a}" data-b="${x.b}">Quitar</button></div>`).join('') || '<p class="muted">Ninguna.</p>'}</div>
+    <div class="two" style="margin-top:8px"><select id="exA">${options}</select><select id="exB">${options}</select></div>
+    <button class="ghost" id="exAdd" style="margin-top:8px">Añadir exclusión</button>
+
+    <h3>Sorteo</h3>
+    <div class="status">${s.drawn
+      ? 'El sorteo está hecho. Cada persona ve en la web a quién le toca. Aquí no se muestra a nadie, tampoco a ti.'
+      : 'Todavía no se ha sorteado. Mientras tanto la gente puede apuntarse y desapuntarse.'}</div>
+    ${s.drawn
+      ? '<button class="ghost" id="sReset">Reiniciar sorteo</button>'
+      : `<button id="sDraw" ${s.joined.length < 3 ? 'disabled' : ''}>Hacer el sorteo</button>`}`;
+
+  $('sBudget').value = s.budget;
+  $('sDate').value = s.date;
+  $('sEnabled').onchange = (e) => act('/api/admin/santa', { enabled: e.target.checked });
+  $('sBudget').onchange = (e) => act('/api/admin/santa', { budget: e.target.value });
+  $('sDate').onchange = (e) => act('/api/admin/santa', { date: e.target.value });
+  if (data.people[1]) $('exB').value = data.people[1].code;
+  $('exAdd').onclick = () => act('/api/admin/santa/exclusion', { a: $('exA').value, b: $('exB').value });
+  for (const b of box.querySelectorAll('#exList button')) b.onclick = () => act('/api/admin/santa/exclusion', { a: b.dataset.a, b: b.dataset.b, remove: true });
+  if ($('sDraw')) $('sDraw').onclick = () => {
+    if (confirm(`¿Hacer el sorteo con ${s.joined.length} personas? Después ya nadie podrá apuntarse ni desapuntarse.`)) act('/api/admin/santa/draw', {});
+  };
+  if ($('sReset')) $('sReset').onclick = () => {
+    if (confirm('¿Reiniciar el sorteo? Se borran los emparejamientos y la gente vuelve a poder apuntarse. Tendrás que sortear de nuevo.')) act('/api/admin/santa/reset', {});
+  };
+}
+
+function renderPolls() {
+  const box = $('pollList');
+  box.innerHTML = '';
+  for (const p of data.polls) {
+    const when = p.closesAt ? new Date(p.closesAt).toLocaleString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'sin fecha';
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `<h2>${esc(p.question)}</h2>
+      <p class="muted">${p.multiple ? 'Varias opciones' : 'Una opción'} · ${p.anonymous ? 'Anónima' : 'Con nombres'} · ${p.closed ? 'Cerrada' : 'Cierra: ' + esc(when)} · ${p.voters} votos</p>
+      ${p.options.map((o) => `<div class="opt"><span>${esc(o.text)}${o.names && o.names.length ? ` <span class="muted">(${o.names.map(esc).join(', ')})</span>` : ''}</span><b>${o.count}</b></div>`).join('')}
+      <button class="ghost small" style="margin-top:10px">Borrar votación</button>`;
+    card.querySelector('button').onclick = () => {
+      if (confirm(`¿Borrar la votación "${p.question}" y todos sus votos?`)) act('/api/admin/poll/delete', { id: p.id });
+    };
+    box.appendChild(card);
+  }
+}
+
+$('createPoll').onclick = async () => {
+  const closes = $('pc').value ? new Date($('pc').value).toISOString() : '';
+  const ok = await act('/api/admin/poll', {
+    question: $('pq').value,
+    options: $('po').value.split('\n'),
+    multiple: $('pm').checked,
+    anonymous: $('pa').checked,
+    closesAt: closes,
+  });
+  if (ok) { $('pq').value = ''; $('po').value = ''; $('pm').checked = false; $('pa').checked = false; $('pc').value = ''; }
+};
+
+for (const b of document.querySelectorAll('.tabs button')) b.onclick = () => { tab = b.dataset.tab; render(); };
+
 async function start() {
   try {
-    render(await api('/api/admin'));
+    data = await api('/api/admin');
     try { sessionStorage.setItem('adminKey', key); } catch {}
     $('login').classList.add('hidden');
     $('panel').classList.remove('hidden');
+    render();
   } catch (e) {
     if (key) $('err').textContent = e.message;
   }
 }
 
 $('loginForm').onsubmit = (e) => { e.preventDefault(); key = $('keyInput').value; start(); };
-$('add').onclick = async () => render(await api('/api/admin/add', {}));
+$('add').onclick = () => act('/api/admin/add', {});
 start();
 </script>
 </body>

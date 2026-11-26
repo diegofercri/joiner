@@ -1,9 +1,15 @@
 # joiner
 
-Web sencilla para cuadrar la cena de Navidad: cada persona entra con su código, marca en un calendario los días que puede (sí, regular o no) y ve la disponibilidad de todos.
+Web sencilla para organizar la Navidad con los colegas. Cada persona entra con su código y tiene tres pestañas:
 
-- `/`: calendario. Se entra con el código o con el enlace personal `/?c=CODIGO`.
-- `/admin`: generar códigos, ponerles nombre y copiar los enlaces. Pide la clave `ADMIN_KEY`.
+- **Cena:** marca en un calendario los días que puede (sí, regular o no) y ve la disponibilidad de todos.
+- **Amigo invisible:** se apunta si quiere y, tras el sorteo, ve solo a quién le toca regalar.
+- **Votaciones:** vota en las encuestas abiertas (una o varias opciones) y puede cambiar el voto hasta el cierre.
+
+Rutas:
+
+- `/`: la web. Se entra con el código o con el enlace personal `/?c=CODIGO`.
+- `/admin`: pide la clave `ADMIN_KEY`. Gestiona los códigos y sus nombres, activa el amigo invisible, define exclusiones, lanza el sorteo y crea votaciones. Los emparejamientos del sorteo no se muestran nunca en el panel.
 
 ## Ejecutar
 
