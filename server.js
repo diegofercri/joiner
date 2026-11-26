@@ -284,6 +284,42 @@ async function handleAdmin(req, res, p, body) {
       });
       return ok();
     }
+    case '/api/admin/poll/edit': {
+      const poll = db.polls.find((x) => x.id === body.id);
+      if (!poll) return fail('Esa votación ya no existe', 404);
+      const question = text(body.question, 200);
+      const parsed = (Array.isArray(body.options) ? body.options : [])
+        .map(parseOption).filter(Boolean).slice(0, 20);
+      if (!question) return fail('Escribe la pregunta');
+      if (parsed.length < 2) return fail('Pon al menos dos opciones');
+      // Conserva el id (y por tanto los votos) de cada opción que sigue: primero por
+      // nombre igual, y si no, la que estaba en la misma posición (para corregir erratas).
+      const norm = (t) => t.trim().toLowerCase();
+      const used = new Set();
+      const ids = parsed.map((o) => {
+        const same = poll.options.find((old) => !used.has(old.id) && norm(old.text) === norm(o.text));
+        if (same) { used.add(same.id); return same.id; }
+        return null;
+      });
+      parsed.forEach((o, i) => {
+        const old = poll.options[i];
+        if (!ids[i] && old && !used.has(old.id)) { used.add(old.id); ids[i] = old.id; }
+      });
+      const options = parsed.map((o, i) => ({ id: ids[i] || crypto.randomUUID().slice(0, 8), ...o }));
+      const valid = new Set(options.map((o) => o.id));
+      const multiple = !!body.multiple;
+      for (const c of Object.keys(poll.votes)) {
+        let v = poll.votes[c].filter((id) => valid.has(id));
+        if (!multiple) v = v.slice(0, 1);
+        if (v.length) poll.votes[c] = v; else delete poll.votes[c];
+      }
+      poll.question = question;
+      poll.options = options;
+      poll.multiple = multiple;
+      poll.anonymous = !!body.anonymous;
+      poll.closesAt = body.closesAt && !Number.isNaN(Date.parse(body.closesAt)) ? new Date(body.closesAt).toISOString() : '';
+      return ok();
+    }
     case '/api/admin/poll/delete':
       db.polls = db.polls.filter((poll) => poll.id !== body.id);
       return ok();
