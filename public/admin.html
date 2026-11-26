@@ -28,6 +28,11 @@
   input:not([type=checkbox]), select, textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
   textarea { min-height: 96px; resize: vertical; }
   .hint { margin: 6px 0 0; font-size: .85rem; }
+  .stepper { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; margin: 4px 0 8px; color: var(--muted); white-space: nowrap; }
+  .stepper.hidden { display: none; }
+  .stepBtns { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+  .stepBtns button { min-width: 40px; padding-left: 0; padding-right: 0; font-size: 1.1rem; line-height: 1; }
+  .stepBtns output { min-width: 44px; text-align: center; color: var(--ink); font-weight: 600; }
   .btnRow { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
   .btnRow button { margin: 0 !important; }
   .opt a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
@@ -94,6 +99,7 @@
         <div class="field"><label for="pq">Pregunta</label><input id="pq" maxlength="200" placeholder="¿Dónde cenamos?"></div>
         <div class="field"><label for="po">Opciones, una por línea</label><textarea id="po" wrap="off" placeholder="Restaurante A https://maps.app.goo.gl/...&#10;Restaurante B https://...&#10;En casa de alguien"></textarea><p class="muted hint">Si pegas un enlace detrás del nombre, la gente podrá abrirlo desde la votación.</p></div>
         <label class="check"><input type="checkbox" id="pm"> Se pueden elegir varias opciones</label>
+        <div class="stepper hidden" id="pmaxRow"><span>Máximo por persona</span><div class="stepBtns"><button type="button" class="ghost small" id="pmaxDown" aria-label="Menos">−</button><output id="pmaxVal">Sin límite</output><button type="button" class="ghost small" id="pmaxUp" aria-label="Más">+</button></div></div>
         <label class="check"><input type="checkbox" id="pa"> Votos anónimos (solo se ven los totales)</label>
         <div class="field"><label for="pc">Cierre (opcional)</label><input id="pc" type="datetime-local"></div>
         <div class="btnRow"><button class="ghost hidden" id="cancelEdit">Cancelar</button><button id="createPoll">Crear votación</button></div>
@@ -221,7 +227,7 @@ function renderPolls() {
     const card = document.createElement('div');
     card.className = 'card';
     card.innerHTML = `<h2>${esc(p.question)}</h2>
-      <p class="muted">${p.multiple ? 'Varias opciones' : 'Una opción'} · ${p.anonymous ? 'Anónima' : 'Con nombres'} · ${p.closed ? 'Cerrada' : 'Cierra: ' + esc(when)} · ${p.voters} votos</p>
+      <p class="muted">${!p.multiple ? 'Una opción' : p.maxChoices ? `Hasta ${p.maxChoices} opciones` : 'Varias opciones'} · ${p.anonymous ? 'Anónima' : 'Con nombres'} · ${p.closed ? 'Cerrada' : 'Cierra: ' + esc(when)} · ${p.voters} votos</p>
       ${p.options.map((o) => `<div class="opt"><span>${esc(o.text)}${o.url ? ` <a href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Ver ↗</a>` : ''}${o.names && o.names.length ? ` <span class="muted">(${o.names.map(esc).join(', ')})</span>` : ''}</span><b>${o.count}</b></div>`).join('')}
       <div class="btnRow"><button class="ghost small pollEdit">Editar</button><button class="ghost small pollDel">Borrar votación</button></div>`;
     card.querySelector('.pollEdit').onclick = () => startEdit(p);
@@ -233,10 +239,31 @@ function renderPolls() {
 }
 
 let editing = null;
+let maxChoices = 0;
+
+function optionCount() { return $('po').value.split('\n').filter((l) => l.trim()).length; }
+
+function setMax(n) {
+  maxChoices = Math.max(0, n);
+  $('pmaxVal').textContent = maxChoices ? String(maxChoices) : 'Sin límite';
+  $('pmaxDown').disabled = maxChoices === 0;
+  $('pmaxRow').classList.toggle('hidden', !$('pm').checked);
+}
+
+$('pm').onchange = () => setMax(maxChoices);
+// "Sin límite" va antes del 1; no tiene sentido llegar al total de opciones.
+$('pmaxUp').onclick = () => {
+  const n = optionCount();
+  const next = maxChoices + 1;
+  if (n && next >= n) return toast(`Con ${n} opciones el máximo útil es ${n - 1}`);
+  setMax(next);
+};
+$('pmaxDown').onclick = () => setMax(maxChoices - 1);
 
 function resetPollForm() {
   editing = null;
   $('pq').value = ''; $('po').value = ''; $('pm').checked = false; $('pa').checked = false; $('pc').value = '';
+  setMax(0);
   $('pollFormTitle').textContent = 'Nueva votación';
   $('createPoll').textContent = 'Crear votación';
   $('cancelEdit').classList.add('hidden');
@@ -256,6 +283,7 @@ function startEdit(p) {
   $('po').value = p.options.map((o) => (o.url ? `${o.text} ${o.url}` : o.text)).join('\n');
   $('po').rows = p.options.length + 1;
   $('pm').checked = p.multiple;
+  setMax(p.maxChoices || 0);
   $('pa').checked = p.anonymous;
   $('pc').value = toLocalInput(p.closesAt);
   $('pollFormTitle').textContent = 'Editar votación';
@@ -272,6 +300,7 @@ $('createPoll').onclick = async () => {
     question: $('pq').value,
     options: $('po').value.split('\n'),
     multiple: $('pm').checked,
+    maxChoices: $('pm').checked ? maxChoices : 0,
     anonymous: $('pa').checked,
     closesAt: closes,
   };

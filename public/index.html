@@ -100,7 +100,8 @@
   .opt .num { font-weight: 700; font-size: .9rem; }
   .optLink { margin-left: 6px; font-size: .85rem; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
   .opt .names { grid-column: 2 / 4; font-size: .8rem; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
-  .opt.closed { cursor: default; }
+  .opt.closed, .opt.full { cursor: default; }
+  .opt.full .txt { opacity: .6; }
   .pill { display: inline-block; font-size: .75rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
 </style>
 </head>
@@ -339,7 +340,7 @@ function renderPolls() {
     const when = p.closesAt ? new Date(p.closesAt).toLocaleString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
     card.innerHTML = `<h3>${esc(p.question)}</h3>
       <div class="muted" style="margin-bottom:4px">
-        <span class="pill">${p.multiple ? 'Varias opciones' : 'Una opción'}</span>
+        <span class="pill">${!p.multiple ? 'Una opción' : p.maxChoices ? `Hasta ${p.maxChoices} opciones` : 'Varias opciones'}</span>
         <span class="pill">${p.anonymous ? 'Anónima' : 'Se ve quién vota'}</span>
         ${p.closed ? '<span class="pill">Cerrada</span>' : when ? `<span class="pill">Cierra ${esc(when)}</span>` : ''}
       </div>
@@ -348,8 +349,10 @@ function renderPolls() {
       const lab = document.createElement('label');
       lab.className = 'opt' + (p.closed ? ' closed' : '');
       const checked = p.mine.includes(o.id);
+      const full = p.multiple && p.maxChoices && p.mine.length >= p.maxChoices && !checked;
+      if (full) lab.classList.add('full');
       lab.innerHTML = `<span class="bar" style="width:${Math.round((o.count / max) * 100)}%"></span>
-        <span class="row"><input type="${p.multiple ? 'checkbox' : 'radio'}" name="p-${p.id}" ${checked ? 'checked' : ''} ${p.closed ? 'disabled' : ''}>
+        <span class="row"><input type="${p.multiple ? 'checkbox' : 'radio'}" name="p-${p.id}" ${checked ? 'checked' : ''} ${p.closed || full ? 'disabled' : ''}>
         <span class="txt">${esc(o.text)}${o.url ? ` <a class="optLink" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Ver ↗</a>` : ''}</span><span class="num">${o.count}</span>
         ${o.names && o.names.length ? `<span class="names">${o.names.map(esc).join(', ')}</span>` : ''}</span>`;
       const link = lab.querySelector('.optLink');

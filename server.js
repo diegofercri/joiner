@@ -140,11 +140,19 @@ function parseOption(line) {
   return t ? { text: t, url } : null;
 }
 
+// Máximo de opciones por persona en votaciones múltiples (0 = sin límite).
+function parseMax(body, count) {
+  if (!body.multiple) return 0;
+  const n = Math.floor(Number(body.maxChoices) || 0);
+  return n >= 1 && n < count ? n : 0;
+}
+
 function pollView(p, me) {
   return {
     id: p.id,
     question: p.question,
     multiple: p.multiple,
+    maxChoices: p.maxChoices || 0,
     anonymous: p.anonymous,
     closesAt: p.closesAt,
     closed: pollClosed(p),
@@ -276,6 +284,7 @@ async function handleAdmin(req, res, p, body) {
         id: crypto.randomUUID(),
         question,
         multiple: !!body.multiple,
+        maxChoices: parseMax(body, options.length),
         anonymous: !!body.anonymous,
         closesAt,
         options: options.map((o) => ({ id: crypto.randomUUID().slice(0, 8), ...o })),
@@ -308,14 +317,17 @@ async function handleAdmin(req, res, p, body) {
       const options = parsed.map((o, i) => ({ id: ids[i] || crypto.randomUUID().slice(0, 8), ...o }));
       const valid = new Set(options.map((o) => o.id));
       const multiple = !!body.multiple;
+      const maxChoices = parseMax(body, options.length);
       for (const c of Object.keys(poll.votes)) {
         let v = poll.votes[c].filter((id) => valid.has(id));
         if (!multiple) v = v.slice(0, 1);
+        else if (maxChoices) v = v.slice(0, maxChoices);
         if (v.length) poll.votes[c] = v; else delete poll.votes[c];
       }
       poll.question = question;
       poll.options = options;
       poll.multiple = multiple;
+      poll.maxChoices = maxChoices;
       poll.anonymous = !!body.anonymous;
       poll.closesAt = body.closesAt && !Number.isNaN(Date.parse(body.closesAt)) ? new Date(body.closesAt).toISOString() : '';
       return ok();
@@ -369,6 +381,7 @@ const server = http.createServer(async (req, res) => {
       const valid = new Set(poll.options.map((o) => o.id));
       const chosen = [...new Set(Array.isArray(body.optionIds) ? body.optionIds : [])].filter((id) => valid.has(id));
       if (!poll.multiple && chosen.length > 1) return send(res, 400, { error: 'Solo puedes elegir una opción' });
+      if (poll.multiple && poll.maxChoices && chosen.length > poll.maxChoices) return send(res, 400, { error: `Puedes elegir como mucho ${poll.maxChoices} opciones` });
       if (chosen.length) poll.votes[code] = chosen; else delete poll.votes[code];
     }
 
