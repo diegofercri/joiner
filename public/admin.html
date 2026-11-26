@@ -9,6 +9,10 @@
   @media (prefers-color-scheme: dark) {
     :root { --bg: #1b1917; --card: #262320; --ink: #f1ece6; --muted: #a59d94; --line: #3a3631; --accent: #e07a6a; --ok: #5cc98a; --bad: #ec6b5e; }
   }
+  :root { color-scheme: light dark; --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%236f675f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  @media (prefers-color-scheme: dark) {
+    :root { --chev: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%23d9d2ca' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  }
   * { box-sizing: border-box; }
   button, a, input, li, select, label { touch-action: manipulation; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
@@ -23,6 +27,9 @@
   input, button, select, textarea { font: inherit; }
   input:not([type=checkbox]), select, textarea { width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); }
   textarea { min-height: 96px; resize: vertical; }
+  select { -webkit-appearance: none; appearance: none; padding-right: 34px; background-image: var(--chev); background-repeat: no-repeat; background-position: right 12px center; }
+  input[type=datetime-local] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 46px; text-align: left; }
+  input[type=datetime-local]::-webkit-date-and-time-value { text-align: left; }
   button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
   button.ghost { background: none; color: var(--muted); border: 1px solid var(--line); font-weight: 400; }
   button.small { padding: 6px 10px; font-size: .85rem; }
@@ -35,7 +42,7 @@
   .hidden { display: none; }
   .err { color: var(--bad); min-height: 1.2em; margin-top: 6px; }
   .tabs { display: flex; gap: 4px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
-  .tabs button { flex: 1; min-width: 0; padding: 9px 4px; border-radius: 9px; background: none; color: var(--muted); font-size: .9rem; }
+  .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 8px; white-space: nowrap; border-radius: 9px; background: none; color: var(--muted); font-size: .9rem; }
   .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
   .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
   .check input { width: 18px; height: 18px; accent-color: var(--accent); }
