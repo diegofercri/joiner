@@ -94,11 +94,11 @@
   .poll h3 { margin: 0 0 4px; font-size: 1.05rem; }
   .opt { display: block; position: relative; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; cursor: pointer; }
   .opt .bar { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--si) 18%, transparent); }
-  .opt .row { position: relative; display: flex; align-items: center; gap: 10px; }
+  .opt .row { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; column-gap: 10px; }
   .opt input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
   .opt .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .opt .num { font-weight: 700; font-size: .9rem; }
-  .opt .names { position: relative; font-size: .8rem; color: var(--muted); margin: 4px 0 0 28px; overflow-wrap: anywhere; }
+  .opt .names { grid-column: 2 / 4; font-size: .8rem; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
   .opt.closed { cursor: default; }
   .pill { display: inline-block; font-size: .75rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
 </style>
@@ -349,8 +349,8 @@ function renderPolls() {
       const checked = p.mine.includes(o.id);
       lab.innerHTML = `<span class="bar" style="width:${Math.round((o.count / max) * 100)}%"></span>
         <span class="row"><input type="${p.multiple ? 'checkbox' : 'radio'}" name="p-${p.id}" ${checked ? 'checked' : ''} ${p.closed ? 'disabled' : ''}>
-        <span class="txt">${esc(o.text)}</span><span class="num">${o.count}</span></span>
-        ${o.names && o.names.length ? `<div class="names">${o.names.map(esc).join(', ')}</div>` : ''}`;
+        <span class="txt">${esc(o.text)}</span><span class="num">${o.count}</span>
+        ${o.names && o.names.length ? `<span class="names">${o.names.map(esc).join(', ')}</span>` : ''}</span>`;
       lab.querySelector('input').onchange = (e) => {
         const ids = p.multiple
           ? (e.target.checked ? [...p.mine, o.id] : p.mine.filter((id) => id !== o.id))
