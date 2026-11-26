@@ -122,6 +122,24 @@ function pollClosed(p) {
   return !!p.closesAt && Date.now() >= Date.parse(p.closesAt);
 }
 
+// Una línea de opción puede llevar un enlace http(s): "Casa Pepe https://maps.app.goo.gl/...".
+function parseOption(line) {
+  const raw = String(line ?? '').slice(0, 1000).trim();
+  let url = '';
+  let rest = raw;
+  const m = raw.match(/https?:\/\/\S+/i);
+  if (m) {
+    try {
+      const u = new URL(m[0]);
+      if ((u.protocol === 'http:' || u.protocol === 'https:') && u.href.length <= 1000) url = u.href;
+    } catch {}
+    rest = raw.replace(m[0], ' ');
+  }
+  let t = text(rest.replace(/^[\s\-–—|:,]+|[\s\-–—|:,]+$/g, ''), 100);
+  if (!t && url) t = new URL(url).hostname.replace(/^www\./, '');
+  return t ? { text: t, url } : null;
+}
+
 function pollView(p, me) {
   return {
     id: p.id,
@@ -134,7 +152,7 @@ function pollView(p, me) {
     mine: me ? p.votes[me] || [] : [],
     options: p.options.map((o) => {
       const codes = Object.keys(p.votes).filter((c) => p.votes[c].includes(o.id));
-      return { id: o.id, text: o.text, count: codes.length, names: p.anonymous ? null : codes.map(label) };
+      return { id: o.id, text: o.text, url: o.url || '', count: codes.length, names: p.anonymous ? null : codes.map(label) };
     }),
   };
 }
@@ -250,7 +268,7 @@ async function handleAdmin(req, res, p, body) {
     case '/api/admin/poll': {
       const question = text(body.question, 200);
       const options = (Array.isArray(body.options) ? body.options : [])
-        .map((o) => text(o, 100)).filter(Boolean).slice(0, 20);
+        .map(parseOption).filter(Boolean).slice(0, 20);
       if (!question) return fail('Escribe la pregunta');
       if (options.length < 2) return fail('Pon al menos dos opciones');
       const closesAt = body.closesAt && !Number.isNaN(Date.parse(body.closesAt)) ? new Date(body.closesAt).toISOString() : '';
@@ -260,7 +278,7 @@ async function handleAdmin(req, res, p, body) {
         multiple: !!body.multiple,
         anonymous: !!body.anonymous,
         closesAt,
-        options: options.map((t) => ({ id: crypto.randomUUID().slice(0, 8), text: t })),
+        options: options.map((o) => ({ id: crypto.randomUUID().slice(0, 8), ...o })),
         votes: {},
         created: Date.now(),
       });

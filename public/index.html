@@ -98,6 +98,7 @@
   .opt input { width: 18px; height: 18px; margin: 0; accent-color: var(--accent); flex-shrink: 0; }
   .opt .txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
   .opt .num { font-weight: 700; font-size: .9rem; }
+  .optLink { margin-left: 6px; font-size: .85rem; font-weight: 600; color: var(--accent); text-decoration: none; white-space: nowrap; }
   .opt .names { grid-column: 2 / 4; font-size: .8rem; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
   .opt.closed { cursor: default; }
   .pill { display: inline-block; font-size: .75rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
@@ -349,8 +350,10 @@ function renderPolls() {
       const checked = p.mine.includes(o.id);
       lab.innerHTML = `<span class="bar" style="width:${Math.round((o.count / max) * 100)}%"></span>
         <span class="row"><input type="${p.multiple ? 'checkbox' : 'radio'}" name="p-${p.id}" ${checked ? 'checked' : ''} ${p.closed ? 'disabled' : ''}>
-        <span class="txt">${esc(o.text)}</span><span class="num">${o.count}</span>
+        <span class="txt">${esc(o.text)}${o.url ? ` <a class="optLink" href="${esc(o.url)}" target="_blank" rel="noopener noreferrer">Ver ↗</a>` : ''}</span><span class="num">${o.count}</span>
         ${o.names && o.names.length ? `<span class="names">${o.names.map(esc).join(', ')}</span>` : ''}</span>`;
+      const link = lab.querySelector('.optLink');
+      if (link) link.onclick = (e) => e.stopPropagation();
       lab.querySelector('input').onchange = (e) => {
         const ids = p.multiple
           ? (e.target.checked ? [...p.mine, o.id] : p.mine.filter((id) => id !== o.id))
