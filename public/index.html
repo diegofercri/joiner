@@ -54,7 +54,18 @@
     .tag { font-size: .85rem; white-space: nowrap; }
   .tag .g { color: var(--si); font-weight: 600; } .tag .y { color: var(--reg); font-weight: 600; } .tag .r { color: var(--no); font-weight: 600; }
 
-  .heat .day { cursor: pointer; }
+  .heat .day { cursor: pointer; color: var(--ink); }
+  .heat .day { position: relative; }
+  .heat .day .s { display: flex; gap: 2px; font-size: .62rem; font-weight: 700; margin-top: 3px; }
+  .heat .day .s i { font-style: normal; padding: 0 2px; border-radius: 3px; background: var(--card); line-height: 1.3; }
+  .heat .day .star { position: absolute; top: 1px; right: 3px; font-size: .6rem; color: var(--ink); }
+  .heat .day .s .g { color: var(--si); } .heat .day .s .y { color: var(--reg); } .heat .day .s .r { color: var(--no); }
+  .heat .day.si { background: color-mix(in srgb, var(--si) 30%, var(--card)); }
+  .heat .day.regular { background: color-mix(in srgb, var(--reg) 30%, var(--card)); }
+  .heat .day.no { background: color-mix(in srgb, var(--no) 30%, var(--card)); }
+  .heat .day.top { border-width: 2px; }
+  .counts { display: flex; flex-wrap: wrap; gap: 12px; font-size: .85rem; color: var(--muted); margin: 6px 0 2px; }
+  .counts b { font-weight: 700; }
   .detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
   .detail h3 { margin: 0 0 8px; font-size: 1rem; }
   .who { display: grid; gap: 4px; font-size: .92rem; }
@@ -103,7 +114,13 @@
 
     <div class="card">
       <h2>Disponibilidad de todos</h2>
-      <p class="muted">El número es cuánta gente puede. Toca un día para ver quién.</p>
+      <p class="muted">Cada día muestra cuántos dicen sí, regular y no. Toca un día para ver quién.</p>
+      <div class="legend">
+        <span style="--c:var(--si)">Puede casi todo el mundo</span>
+        <span style="--c:var(--reg)">Dividido</span>
+        <span style="--c:var(--no)">Casi nadie puede</span>
+      </div>
+      <div class="counts"><span><b style="color:var(--si)">3</b> sí</span><span><b style="color:var(--reg)">2</b> regular</span><span><b style="color:var(--no)">1</b> no</span><span>★ mejores días</span></div>
       <div id="heat" class="heat"></div>
       <div id="detail" class="detail hidden"></div>
     </div>
@@ -189,20 +206,22 @@ function render() {
     $('best').appendChild(li);
   }
 
-  const max = Math.max(1, ...upcoming.map((d) => tally(d).si.length));
+  const top = new Set(scored.filter((x) => (x.t.si.length + x.t.regular.length * 0.5) / (x.t.si.length + x.t.regular.length + x.t.no.length) >= 0.4).slice(0, 3).map((x) => x.d));
   renderCalendar($('heat'), (d) => {
     const t = tally(d);
     const b = document.createElement('button');
-    b.className = 'day' + (d === selected ? ' sel' : '');
-    b.disabled = d < today;
-    const n = t.si.length;
-    if (n > 0) {
-      const a = 0.15 + 0.75 * (n / max);
-      b.style.background = `color-mix(in srgb, var(--si) ${Math.round(a * 100)}%, var(--bg))`;
-      b.style.borderColor = 'var(--si)';
-      if (a > 0.55) b.style.color = '#fff';
+    const votes = t.si.length + t.regular.length + t.no.length;
+    let tier = '';
+    if (votes) {
+      const ratio = (t.si.length + t.regular.length * 0.5) / votes;
+      tier = ratio >= 0.7 ? 'si' : ratio >= 0.4 ? 'regular' : 'no';
     }
-    b.innerHTML = `<span class="n">${parse(d).getDate()}</span><span class="s">${n ? n + '✓' : ''}${t.regular.length ? ' ' + t.regular.length + '~' : ''}</span>`;
+    b.className = 'day ' + tier + (top.has(d) ? ' top' : '') + (d === selected ? ' sel' : '');
+    b.disabled = d < today;
+    const c = (n, cls) => (n ? `<i class="${cls}">${n}</i>` : '');
+    b.innerHTML = `${top.has(d) ? '<span class="star">★</span>' : ''}<span class="n">${parse(d).getDate()}</span>` +
+      `<span class="s">${c(t.si.length, 'g')}${c(t.regular.length, 'y')}${c(t.no.length, 'r')}</span>`;
+    b.setAttribute('aria-label', `${longDate(d)}: ${t.si.length} sí, ${t.regular.length} regular, ${t.no.length} no`);
     b.onclick = () => { selected = d; render(); };
     return b;
   });
