@@ -76,6 +76,8 @@
   .who span:last-child { min-width: 0; overflow-wrap: anywhere; }
   .saved { font-size: .8rem; color: var(--si); height: 1em; }
   .hidden { display: none; }
+  #joinBtn, #revealGift, .clearVote { display: block; margin-left: auto; }
+  #revealGift { margin-top: 10px; }
 
   .tabs { display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
   .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 8px; white-space: nowrap; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
@@ -358,7 +360,7 @@ function renderPolls() {
     }
     if (!p.closed && p.mine.length && !p.multiple) {
       const clear = document.createElement('button');
-      clear.className = 'link';
+      clear.className = 'link clearVote';
       clear.style.marginTop = '10px';
       clear.textContent = 'Quitar mi voto';
       clear.onclick = () => post('/api/poll/vote', { pollId: p.id, optionIds: [] });
