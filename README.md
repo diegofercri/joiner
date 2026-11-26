@@ -1,6 +1,6 @@
 # joiner
 
-Web sencilla para organizar la Navidad con los colegas. Cada persona entra con su código y tiene tres pestañas:
+Web sencilla para organizar La Navidad de los uVes. Cada persona entra con su código y tiene tres pestañas:
 
 - **Cena:** marca en un calendario los días que puede (sí, regular o no) y ve la disponibilidad de todos.
 - **Amigo invisible:** se apunta si quiere y, tras el sorteo, ve solo a quién le toca regalar.
