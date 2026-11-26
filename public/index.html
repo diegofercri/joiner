@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cena de Navidad</title>
+<style>
+  :root {
+    --bg: #f7f3ee; --card: #fff; --ink: #2a2622; --muted: #6f675f; --line: #e6dfd6;
+    --si: #2f8f5b; --si-bg: #dff1e6; --reg: #b7791f; --reg-bg: #fbedd3; --no: #c0392b; --no-bg: #f8dcd8;
+    --accent: #8e2a2a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #1b1917; --card: #262320; --ink: #f1ece6; --muted: #a59d94; --line: #3a3631;
+      --si: #5cc98a; --si-bg: #1f3a2a; --reg: #e5a94b; --reg-bg: #3d3020; --no: #ec6b5e; --no-bg: #432422; --accent: #e07a6a; }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--accent); }
+  h2 { font-size: 1.1rem; margin: 0 0 10px; }
+  p { margin: 0 0 12px; }
+  .muted { color: var(--muted); font-size: .92rem; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; margin-top: 16px; }
+  input, button { font: inherit; }
+  input { width: 100%; padding: 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); }
+  button.primary { margin-top: 10px; width: 100%; padding: 12px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
+  .link { background: none; border: 0; color: var(--muted); text-decoration: underline; cursor: pointer; padding: 0; font-size: .9rem; }
+  .err { color: var(--no); margin-top: 8px; min-height: 1.2em; }
+
+  .month { margin-top: 14px; }
+  .month h3 { font-size: .95rem; margin: 0 0 6px; color: var(--muted); font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+  .dow { text-align: center; font-size: .75rem; color: var(--muted); }
+  .day { height: clamp(40px, 11vw, 64px); min-width: 0; border-radius: 9px; border: 1px solid var(--line); background: var(--bg); color: var(--ink);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: .95rem; cursor: pointer; padding: 0; user-select: none; }
+  .day .n { font-weight: 600; }
+  .day .s { font-size: .7rem; line-height: 1; margin-top: 2px; }
+  .day.off { visibility: hidden; }
+  .day:disabled { opacity: .35; cursor: default; }
+  .day.si { background: var(--si-bg); border-color: var(--si); color: var(--si); }
+  .day.regular { background: var(--reg-bg); border-color: var(--reg); color: var(--reg); }
+  .day.no { background: var(--no-bg); border-color: var(--no); color: var(--no); }
+  .day.sel { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; font-size: .85rem; color: var(--muted); margin-top: 4px; }
+  .legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; background: var(--c); }
+
+  .best { list-style: none; margin: 0; padding: 0; }
+  .best li { display: flex; justify-content: space-between; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); cursor: pointer; }
+  .best li:first-child { border-top: 0; }
+    .tag { font-size: .85rem; white-space: nowrap; }
+  .tag .g { color: var(--si); font-weight: 600; } .tag .y { color: var(--reg); font-weight: 600; } .tag .r { color: var(--no); font-weight: 600; }
+
+  .heat .day { cursor: pointer; }
+  .detail { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .detail h3 { margin: 0 0 8px; font-size: 1rem; }
+  .who { display: grid; gap: 4px; font-size: .92rem; }
+  .who div { display: flex; gap: 8px; }
+  .who .g { color: var(--si); } .who .y { color: var(--reg); } .who .r { color: var(--no); }
+  .who .lab { min-width: 88px; flex-shrink: 0; font-weight: 600; }
+  .who span:last-child { min-width: 0; overflow-wrap: anywhere; }
+  .saved { font-size: .8rem; color: var(--si); height: 1em; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cena de Navidad 🎄</h1>
+  <p class="muted">Marca qué días puedes cenar y mira qué días le vienen bien a todos.</p>
+
+  <section id="login" class="card hidden">
+    <h2>Entra con tu código</h2>
+    <p class="muted">Diego te ha pasado un código, por ejemplo <b>reno-42</b>.</p>
+    <form id="loginForm">
+      <input id="codeInput" autocomplete="off" autocapitalize="none" placeholder="Tu código">
+      <button class="primary" type="submit">Entrar</button>
+      <div id="loginErr" class="err"></div>
+    </form>
+  </section>
+
+  <section id="app" class="hidden">
+    <div class="card">
+      <h2 id="hello">Hola</h2>
+      <p class="muted">Toca un día para ir cambiando: <b>sí</b> → <b>regular</b> → <b>no</b> → sin marcar. Se guarda solo.</p>
+      <div class="legend">
+        <span style="--c:var(--si)">Sí puedo</span>
+        <span style="--c:var(--reg)">Regular</span>
+        <span style="--c:var(--no)">No puedo</span>
+      </div>
+      <div id="mine"></div>
+      <div class="saved" id="saved"></div>
+      <button class="link" id="logout">No soy yo, cambiar de código</button>
+    </div>
+
+    <div class="card">
+      <h2>Mejores días</h2>
+      <p class="muted" id="respondedTxt"></p>
+      <ul class="best" id="best"></ul>
+    </div>
+
+    <div class="card">
+      <h2>Disponibilidad de todos</h2>
+      <p class="muted">El número es cuánta gente puede. Toca un día para ver quién.</p>
+      <div id="heat" class="heat"></div>
+      <div id="detail" class="detail hidden"></div>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const NEXT = { '': 'si', si: 'regular', regular: 'no', no: '' };
+let code = '';
+let state = null;
+let selected = null;
+
+try { code = new URLSearchParams(location.search).get('c') || localStorage.getItem('code') || ''; } catch {}
+
+const pad = (n) => String(n).padStart(2, '0');
+const iso = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const parse = (s) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const today = iso(new Date());
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const longDate = (s) => cap(parse(s).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }));
+
+function days() {
+  const out = [];
+  for (let d = parse(state.start); iso(d) <= state.end; d.setDate(d.getDate() + 1)) out.push(iso(d));
+  return out;
+}
+
+function tally(day) {
+  const t = { si: [], regular: [], no: [], nada: [] };
+  for (const p of state.people) (t[p.votes[day]] || t.nada).push(p.name);
+  return t;
+}
+
+function renderCalendar(container, cellFor) {
+  container.innerHTML = '';
+  const byMonth = {};
+  for (const d of days()) (byMonth[d.slice(0, 7)] ||= []).push(d);
+  for (const [ym, list] of Object.entries(byMonth)) {
+    const m = document.createElement('div');
+    m.className = 'month';
+    const title = cap(parse(ym + '-01').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' }));
+    m.innerHTML = `<h3>${title}</h3>`;
+    const g = document.createElement('div');
+    g.className = 'grid';
+    for (const w of ['L', 'M', 'X', 'J', 'V', 'S', 'D']) g.insertAdjacentHTML('beforeend', `<div class="dow">${w}</div>`);
+    const offset = (parse(list[0]).getDay() + 6) % 7;
+    for (let i = 0; i < offset; i++) g.insertAdjacentHTML('beforeend', '<div class="day off"></div>');
+    for (const d of list) g.appendChild(cellFor(d));
+    m.appendChild(g);
+    container.appendChild(m);
+  }
+}
+
+function render() {
+  $('hello').textContent = `Hola, ${state.me.name}`;
+  const me = state.people.find((p) => p.me);
+
+  renderCalendar($('mine'), (d) => {
+    const b = document.createElement('button');
+    const v = me.votes[d] || '';
+    b.className = 'day ' + v;
+    b.disabled = d < today;
+    b.innerHTML = `<span class="n">${parse(d).getDate()}</span>`;
+    b.setAttribute('aria-label', `${longDate(d)}: ${v || 'sin marcar'}`);
+    b.onclick = () => vote(d, NEXT[v]);
+    return b;
+  });
+
+  const upcoming = days().filter((d) => d >= today);
+  const scored = upcoming.map((d) => {
+    const t = tally(d);
+    return { d, t, score: t.si.length + t.regular.length * 0.5 - t.no.length * 0.01 };
+  }).filter((x) => x.t.si.length + x.t.regular.length > 0)
+    .sort((a, b) => b.score - a.score || a.d.localeCompare(b.d)).slice(0, 5);
+
+  const responded = state.people.filter((p) => Object.keys(p.votes).length > 0).length;
+  $('respondedTxt').textContent = `Han respondido ${responded} de ${state.people.length}.`;
+  $('best').innerHTML = scored.length ? '' : '<li class="muted">Todavía nadie ha marcado días.</li>';
+  for (const x of scored) {
+    const li = document.createElement('li');
+    li.innerHTML = `<b>${longDate(x.d)}</b><span class="tag"><span class="g">${x.t.si.length} sí</span> · <span class="y">${x.t.regular.length} regular</span> · <span class="r">${x.t.no.length} no</span></span>`;
+    li.onclick = () => { selected = x.d; render(); $('detail').scrollIntoView({ behavior: 'smooth', block: 'center' }); };
+    $('best').appendChild(li);
+  }
+
+  const max = Math.max(1, ...upcoming.map((d) => tally(d).si.length));
+  renderCalendar($('heat'), (d) => {
+    const t = tally(d);
+    const b = document.createElement('button');
+    b.className = 'day' + (d === selected ? ' sel' : '');
+    b.disabled = d < today;
+    const n = t.si.length;
+    if (n > 0) {
+      const a = 0.15 + 0.75 * (n / max);
+      b.style.background = `color-mix(in srgb, var(--si) ${Math.round(a * 100)}%, var(--bg))`;
+      b.style.borderColor = 'var(--si)';
+      if (a > 0.55) b.style.color = '#fff';
+    }
+    b.innerHTML = `<span class="n">${parse(d).getDate()}</span><span class="s">${n ? n + '✓' : ''}${t.regular.length ? ' ' + t.regular.length + '~' : ''}</span>`;
+    b.onclick = () => { selected = d; render(); };
+    return b;
+  });
+
+  const det = $('detail');
+  if (!selected) { det.classList.add('hidden'); return; }
+  const t = tally(selected);
+  const row = (lab, cls, list) => `<div><span class="lab ${cls}">${lab}</span><span>${list.length ? list.map(esc).join(', ') : '—'}</span></div>`;
+  det.innerHTML = `<h3>${longDate(selected)}</h3><div class="who">
+    ${row('Sí', 'g', t.si)}${row('Regular', 'y', t.regular)}${row('No', 'r', t.no)}${row('Sin marcar', '', t.nada)}</div>`;
+  det.classList.remove('hidden');
+}
+
+function esc(s) { return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
+
+async function load() {
+  const r = await fetch('/api/state?code=' + encodeURIComponent(code));
+  if (!r.ok) throw new Error((await r.json()).error);
+  state = await r.json();
+}
+
+let savedTimer;
+async function vote(date, value) {
+  const me = state.people.find((p) => p.me);
+  if (value) me.votes[date] = value; else delete me.votes[date];
+  render();
+  const r = await fetch('/api/vote', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, date, value }) });
+  if (r.ok) { state = await r.json(); render(); $('saved').textContent = 'Guardado ✓'; }
+  else { $('saved').textContent = 'No se pudo guardar, inténtalo otra vez'; }
+  clearTimeout(savedTimer);
+  savedTimer = setTimeout(() => ($('saved').textContent = ''), 1500);
+}
+
+async function enter(c) {
+  code = c.trim().toLowerCase().replace(/\s+/g, '-');
+  try {
+    await load();
+    try { localStorage.setItem('code', code); } catch {}
+    if (location.search) history.replaceState(null, '', location.pathname);
+    $('login').classList.add('hidden');
+    $('app').classList.remove('hidden');
+    render();
+  } catch (e) {
+    try { localStorage.removeItem('code'); } catch {}
+    $('app').classList.add('hidden');
+    $('login').classList.remove('hidden');
+    $('loginErr').textContent = c ? 'Ese código no existe. Revísalo con Diego.' : '';
+  }
+}
+
+$('loginForm').onsubmit = (e) => { e.preventDefault(); enter($('codeInput').value); };
+$('logout').onclick = () => { try { localStorage.removeItem('code'); } catch {} code = ''; state = null; enter(''); };
+
+setInterval(async () => {
+  if (!state || document.hidden) return;
+  try { await load(); render(); } catch {}
+}, 20000);
+
+enter(code);
+</script>
+</body>
+</html>
