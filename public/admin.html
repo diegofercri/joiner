@@ -39,7 +39,7 @@
   code { font-size: 1rem; font-weight: 600; }
   .ok { color: var(--ok); font-size: .85rem; }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
-  #add, #exAdd, #sDraw, #sReset, #createPoll, .pollDel { display: block; margin-left: auto; }
+  #add, #exAdd, #sDraw, #sReset, #createPoll, .pollDel, #loginForm button { display: block; margin-left: auto; margin-top: 16px; }
   .hidden { display: none; }
   .err { color: var(--bad); min-height: 1.2em; margin-top: 6px; }
   .tabs { display: flex; gap: 4px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
@@ -65,7 +65,7 @@
 
   <section id="login" class="card">
     <p class="muted">Introduce la clave de administración.</p>
-    <form id="loginForm"><input id="keyInput" type="password" autocomplete="current-password"><button style="margin-top:10px">Entrar</button></form>
+    <form id="loginForm"><input id="keyInput" type="password" autocomplete="current-password"><button>Entrar</button></form>
     <div id="err" class="err"></div>
   </section>
 
@@ -79,7 +79,7 @@
     <div id="tab-personas" class="card">
       <p class="muted">Pon un nombre a cada código y pásale a cada persona su enlace por privado. El enlace general sin código es <b id="base"></b>: quien entre ahí tendrá que escribir su código.</p>
       <div id="list"></div>
-      <button id="add" style="margin-top:10px">Añadir código</button>
+      <button id="add">Añadir código</button>
     </div>
 
     <div id="tab-amigo" class="card hidden"></div>
@@ -92,7 +92,7 @@
         <label class="check"><input type="checkbox" id="pm"> Se pueden elegir varias opciones</label>
         <label class="check"><input type="checkbox" id="pa"> Votos anónimos (solo se ven los totales)</label>
         <div class="field"><label for="pc">Cierre (opcional)</label><input id="pc" type="datetime-local"></div>
-        <button id="createPoll" style="margin-top:12px">Crear votación</button>
+        <button id="createPoll">Crear votación</button>
       </div>
       <div id="pollList"></div>
     </div>
@@ -183,7 +183,7 @@ function renderSanta() {
     <p class="muted">Parejas que no pueden regalarse entre sí, en ningún sentido.</p>
     <div id="exList">${s.exclusions.map((x) => `<div class="line"><span>${esc(x.aName)} ↔ ${esc(x.bName)}</span><button class="ghost small" data-a="${x.a}" data-b="${x.b}">Quitar</button></div>`).join('') || '<p class="muted">Ninguna.</p>'}</div>
     <div class="two" style="margin-top:8px"><select id="exA">${options}</select><select id="exB">${options}</select></div>
-    <button class="ghost" id="exAdd" style="margin-top:8px">Añadir exclusión</button>
+    <button class="ghost" id="exAdd">Añadir exclusión</button>
 
     <h3>Sorteo</h3>
     <p class="muted">${s.drawn
@@ -219,7 +219,7 @@ function renderPolls() {
     card.innerHTML = `<h2>${esc(p.question)}</h2>
       <p class="muted">${p.multiple ? 'Varias opciones' : 'Una opción'} · ${p.anonymous ? 'Anónima' : 'Con nombres'} · ${p.closed ? 'Cerrada' : 'Cierra: ' + esc(when)} · ${p.voters} votos</p>
       ${p.options.map((o) => `<div class="opt"><span>${esc(o.text)}${o.names && o.names.length ? ` <span class="muted">(${o.names.map(esc).join(', ')})</span>` : ''}</span><b>${o.count}</b></div>`).join('')}
-      <button class="ghost small pollDel" style="margin-top:10px">Borrar votación</button>`;
+      <button class="ghost small pollDel">Borrar votación</button>`;
     card.querySelector('button').onclick = () => {
       if (confirm(`¿Borrar la votación "${p.question}" y todos sus votos?`)) act('/api/admin/poll/delete', { id: p.id });
     };
