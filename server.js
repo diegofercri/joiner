@@ -22,6 +22,7 @@ if (fs.existsSync(DATA_FILE)) db = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')
 // Datos añadidos después del primer despliegue: se crean vacíos si no existen.
 db.santa ||= { enabled: false, budget: '', date: '', joined: [], exclusions: [], assignments: null };
 db.polls ||= [];
+db.events ||= [];
 
 function save() {
   const tmp = DATA_FILE + '.tmp';
@@ -165,6 +166,73 @@ function pollView(p, me) {
   };
 }
 
+// ---------- Anuncios ----------
+
+const validDay = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) && !Number.isNaN(Date.parse(d));
+const validTime = (t) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
+
+function parseEvent(body) {
+  const ev = {
+    title: text(body.title, 120),
+    date: text(body.date, 10),
+    time: text(body.time, 5),
+    endTime: text(body.endTime, 5),
+    address: text(body.address, 200),
+    notes: text(body.notes, 1000),
+  };
+  if (!ev.title) return { error: 'Escribe un título' };
+  if (!validDay(ev.date)) return { error: 'Pon la fecha' };
+  if (ev.time && !validTime(ev.time)) return { error: 'Hora no válida' };
+  if (!ev.time || !validTime(ev.endTime)) ev.endTime = '';
+  return { ev };
+}
+
+function sortedEvents() {
+  return [...db.events].sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
+}
+
+// Archivo .ics con hora local "flotante": el calendario la toma en la hora del teléfono.
+function eventIcs(ev) {
+  const esc = (v) => v.replace(/\\/g, '\\\\').replace(/\n/g, '\\n').replace(/([,;])/g, '\\$1');
+  const fold = (line) => {
+    const out = [];
+    let cur = '';
+    for (const ch of line) {
+      if (Buffer.byteLength(cur + ch) > 73) { out.push(cur); cur = ' '; }
+      cur += ch;
+    }
+    return [...out, cur].join('\r\n');
+  };
+  const d = ev.date.replace(/-/g, '');
+  const pad = (n) => String(n).padStart(2, '0');
+  const dayAfter = (iso) => { const x = new Date(iso + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + 1); return x.toISOString().slice(0, 10).replace(/-/g, ''); };
+  let start, end;
+  if (ev.time) {
+    const [h, m] = ev.time.split(':').map(Number);
+    start = `DTSTART:${d}T${pad(h)}${pad(m)}00`;
+    if (ev.endTime) {
+      const [eh, em] = ev.endTime.split(':').map(Number);
+      const endDay = ev.endTime <= ev.time ? dayAfter(ev.date) : d;
+      end = `DTEND:${endDay}T${pad(eh)}${pad(em)}00`;
+    } else {
+      end = 'DURATION:PT3H';
+    }
+  } else {
+    start = `DTSTART;VALUE=DATE:${d}`;
+    end = `DTEND;VALUE=DATE:${dayAfter(ev.date)}`;
+  }
+  const stamp = new Date(ev.updated || ev.created).toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const lines = [
+    'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//uVes//Navidad//ES', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+    'BEGIN:VEVENT', `UID:${ev.id}@uves`, `DTSTAMP:${stamp}`, start, end,
+    `SUMMARY:${esc(ev.title)}`,
+    ev.address && `LOCATION:${esc(ev.address)}`,
+    ev.notes && `DESCRIPTION:${esc(ev.notes)}`,
+    'END:VEVENT', 'END:VCALENDAR',
+  ].filter(Boolean);
+  return lines.map(fold).join('\r\n') + '\r\n';
+}
+
 // ---------- Estado ----------
 
 function publicState(me) {
@@ -173,6 +241,7 @@ function publicState(me) {
     start: START, end: END, me: { code: me, name: label(me) }, people,
     santa: santaFor(me),
     polls: db.polls.map((p) => pollView(p, me)),
+    events: sortedEvents(),
   };
 }
 
@@ -184,6 +253,7 @@ function adminState() {
     }),
     santa: santaAdmin(),
     polls: db.polls.map((p) => pollView(p, null)),
+    events: sortedEvents(),
   };
 }
 
@@ -332,6 +402,23 @@ async function handleAdmin(req, res, p, body) {
       poll.closesAt = body.closesAt && !Number.isNaN(Date.parse(body.closesAt)) ? new Date(body.closesAt).toISOString() : '';
       return ok();
     }
+    case '/api/admin/event': {
+      const { ev, error } = parseEvent(body);
+      if (error) return fail(error);
+      db.events.push({ id: crypto.randomUUID(), ...ev, created: Date.now() });
+      return ok();
+    }
+    case '/api/admin/event/edit': {
+      const old = db.events.find((x) => x.id === body.id);
+      if (!old) return fail('Ese anuncio ya no existe', 404);
+      const { ev, error } = parseEvent(body);
+      if (error) return fail(error);
+      Object.assign(old, ev, { updated: Date.now() });
+      return ok();
+    }
+    case '/api/admin/event/delete':
+      db.events = db.events.filter((x) => x.id !== body.id);
+      return ok();
     case '/api/admin/poll/delete':
       db.polls = db.polls.filter((poll) => poll.id !== body.id);
       return ok();
@@ -352,6 +439,19 @@ const server = http.createServer(async (req, res) => {
     const code = normCode(url.searchParams.get('code'));
     if (!db.people[code]) return send(res, 404, { error: 'Código no válido' });
     return send(res, 200, publicState(code));
+  }
+
+  // Enlace para añadir al calendario: /evento/<id>.ics?c=<código>
+  const icsMatch = p.match(/^\/evento\/([\w-]+)\.ics$/);
+  if (req.method === 'GET' && icsMatch) {
+    const ev = db.events.find((x) => x.id === icsMatch[1]);
+    if (!ev || !db.people[normCode(url.searchParams.get('c'))]) return send(res, 404, 'No encontrado', 'text/plain; charset=utf-8');
+    res.writeHead(200, {
+      'Content-Type': 'text/calendar; charset=utf-8',
+      'Content-Disposition': 'inline; filename="evento.ics"',
+      'Cache-Control': 'no-store',
+    });
+    return res.end(eventIcs(ev));
   }
 
   if (req.method === 'POST' && ['/api/vote', '/api/santa/join', '/api/poll/vote'].includes(p)) {

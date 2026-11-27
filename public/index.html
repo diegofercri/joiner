@@ -80,8 +80,8 @@
   .hidden { display: none; }
   #joinBtn, #revealGift, .clearVote { display: block; margin-left: auto; margin-top: 16px; }
 
-  .tabs { display: flex; gap: 4px; margin-top: 16px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
-  .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 8px; white-space: nowrap; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
+  .tabs { display: flex; gap: 2px; margin-top: 16px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 5px; white-space: nowrap; border: 0; border-radius: 9px; background: none; color: var(--muted); font: inherit; font-size: .9rem; font-weight: 600; cursor: pointer; }
   .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
   .btn { padding: 11px 14px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
   .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
@@ -102,6 +102,16 @@
   .opt .names { grid-column: 2 / 4; font-size: .8rem; color: var(--muted); margin-top: 4px; overflow-wrap: anywhere; }
   .opt.closed, .opt.full { cursor: default; }
   .opt.full .txt { opacity: .6; }
+  .event h3 { margin: 0 0 8px; font-size: 1.15rem; }
+  .event.past { opacity: .6; }
+  .evFacts { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 10px; margin: 0; font-size: .95rem; }
+  .evFacts dt { margin: 0; }
+  .evFacts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+  .evFacts a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .evNotes { margin: 12px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+  .evNotes a { color: var(--accent); }
+  .evBtns { display: grid; gap: 8px; margin-top: 16px; }
+  .evBtns a { text-decoration: none; text-align: center; }
   .pill { display: inline-block; font-size: .75rem; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); margin-right: 4px; }
 </style>
 </head>
@@ -122,6 +132,7 @@
 
   <section id="app" class="hidden">
     <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="anuncios">Anuncios</button>
       <button role="tab" data-tab="cena">Cena</button>
       <button role="tab" data-tab="amigo">Amigo invisible</button>
       <button role="tab" data-tab="votaciones">Votaciones</button>
@@ -168,6 +179,10 @@
     <div id="tab-votaciones" class="hidden">
       <div id="polls"></div>
     </div>
+
+    <div id="tab-anuncios" class="hidden">
+      <div id="events"></div>
+    </div>
   </section>
 </main>
 <script>
@@ -176,12 +191,14 @@ const NEXT = { '': 'si', si: 'regular', regular: 'no', no: '' };
 let code = '';
 let state = null;
 let selected = null;
+const TABS = ['anuncios', 'cena', 'amigo', 'votaciones'];
 const SUBTITLES = {
+  anuncios: 'Los planes que ya están cerrados: cuándo, a qué hora y dónde.',
   cena: 'Marca qué días puedes cenar y mira qué días le vienen bien a todos.',
   amigo: 'Apúntate al amigo invisible y, cuando Diego haga el sorteo, verás aquí a quién te toca regalar.',
   votaciones: 'Vota en las encuestas abiertas. Puedes cambiar tu voto hasta que se cierren.',
 };
-let tab = ['cena', 'amigo', 'votaciones'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'cena';
+let tab = TABS.includes(location.hash.slice(1)) ? location.hash.slice(1) : '';
 
 try { code = new URLSearchParams(location.search).get('c') || localStorage.getItem('code') || ''; } catch {}
 
@@ -287,11 +304,64 @@ function renderCena() {
 
 function render() {
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
-  for (const t of ['cena', 'amigo', 'votaciones']) $('tab-' + t).classList.toggle('hidden', t !== tab);
+  for (const t of TABS) $('tab-' + t).classList.toggle('hidden', t !== tab);
   $('subtitle').textContent = SUBTITLES[tab];
   renderCena();
   renderSanta();
   renderPolls();
+  renderEvents();
+}
+
+const upcomingEvents = () => state.events.filter((e) => e.date >= today);
+
+function linkify(s) {
+  return esc(s).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
+}
+
+function gcalUrl(e) {
+  const d = e.date.replace(/-/g, '');
+  const t = (x) => x.replace(':', '') + '00';
+  const next = (s) => { const x = parse(s); x.setDate(x.getDate() + 1); return iso(x).replace(/-/g, ''); };
+  let dates;
+  if (!e.time) dates = `${d}/${next(e.date)}`;
+  else if (e.endTime) dates = `${d}T${t(e.time)}/${e.endTime <= e.time ? next(e.date) : d}T${t(e.endTime)}`;
+  else {
+    const [h, m] = e.time.split(':').map(Number);
+    const end = new Date(parse(e.date).setHours(h + 3, m));
+    dates = `${d}T${t(e.time)}/${iso(end).replace(/-/g, '')}T${pad(end.getHours())}${pad(end.getMinutes())}00`;
+  }
+  const q = new URLSearchParams({ action: 'TEMPLATE', text: e.title, dates, details: e.notes, location: e.address, ctz: 'Europe/Madrid' });
+  return 'https://calendar.google.com/calendar/render?' + q;
+}
+
+function renderEvents() {
+  const box = $('events');
+  if (!state.events.length) {
+    box.innerHTML = '<div class="card"><h2>Anuncios</h2><p class="muted">Todavía no hay nada anunciado. Cuando Diego cierre la cena u otro plan, aparecerá aquí.</p></div>';
+    return;
+  }
+  const list = [...upcomingEvents(), ...state.events.filter((e) => e.date < today).reverse()];
+  box.innerHTML = '';
+  for (const e of list) {
+    const past = e.date < today;
+    const card = document.createElement('div');
+    card.className = 'card event' + (past ? ' past' : '');
+    const hours = e.time ? (e.endTime ? `De ${e.time} a ${e.endTime}` : e.time) : 'Todo el día';
+    const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(e.address);
+    card.innerHTML = `<h3>${esc(e.title)}</h3>
+      ${past ? '<p><span class="pill">Ya pasó</span></p>' : ''}
+      <dl class="evFacts">
+        <dt aria-label="Fecha">📅</dt><dd><b>${longDate(e.date)}</b></dd>
+        <dt aria-label="Hora">🕘</dt><dd>${hours}</dd>
+        ${e.address ? `<dt aria-label="Dirección">📍</dt><dd>${esc(e.address)} <a href="${maps}" target="_blank" rel="noopener noreferrer">Cómo llegar ↗</a></dd>` : ''}
+      </dl>
+      ${e.notes ? `<p class="evNotes">${linkify(e.notes)}</p>` : ''}
+      ${past ? '' : `<div class="evBtns">
+        <a class="btn" href="/evento/${e.id}.ics?c=${encodeURIComponent(code)}">📅 Añadir al calendario</a>
+        <a class="btn ghost" href="${gcalUrl(e)}" target="_blank" rel="noopener noreferrer">Añadir a Google Calendar</a>
+      </div>`}`;
+    box.appendChild(card);
+  }
 }
 
 function renderSanta() {
@@ -421,6 +491,7 @@ async function enter(c) {
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     $('login').classList.add('hidden');
     $('app').classList.remove('hidden');
+    if (!tab) tab = upcomingEvents().length ? 'anuncios' : 'cena';
     render();
   } catch (e) {
     try { localStorage.removeItem('code'); } catch {}
