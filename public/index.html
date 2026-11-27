@@ -18,7 +18,7 @@
   button, a, input, li { touch-action: manipulation; }
   html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 640px; margin: 0 auto; padding: 20px 16px calc(96px + env(safe-area-inset-bottom)); }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px calc(60px + env(safe-area-inset-bottom)); }
   h1 { font-size: 1.6rem; margin: 0 0 4px; color: var(--accent); }
   .vtree { display: inline-block; transform: rotate(180deg); font-size: 1em; line-height: 1; vertical-align: .06em; margin: 0 -.1em; }
   .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -80,12 +80,17 @@
   .hidden { display: none; }
   #joinBtn, #revealGift, .clearVote { display: block; margin-left: auto; margin-top: 16px; }
 
-  .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
-    background: color-mix(in srgb, var(--card) 92%, transparent); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
-  .tabs button { flex: 1 1 0; max-width: 150px; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; border: 0; background: none; color: var(--muted); font: inherit; font-size: .72rem; font-weight: 600; cursor: pointer; }
-  .tabs button .ic { font-size: 1.35rem; line-height: 1.2; filter: grayscale(1); opacity: .7; }
-  .tabs button[aria-selected="true"] { color: var(--accent); }
-  .tabs button[aria-selected="true"] .ic { filter: none; opacity: 1; }
+  .menu { position: relative; margin-top: 16px; }
+  .mbtn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+  .mbtn .cur { display: flex; align-items: center; gap: 8px; }
+  .mbtn .chev { color: var(--muted); font-size: 1.1rem; line-height: 1; transition: transform .15s; }
+  .mbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .tabs { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 9; display: grid; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+  .tabs.hidden { display: none; }
+  .tabs button { display: flex; align-items: center; gap: 10px; padding: 13px 14px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .tabs button:first-child { border-top: 0; }
+  .tabs button .ic { font-size: 1.15rem; line-height: 1; }
+  .tabs button[aria-selected="true"] { color: var(--accent); font-weight: 600; }
   .btn { padding: 11px 14px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
   .btn.ghost { background: none; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
   .btn:disabled { opacity: .5; cursor: default; }
@@ -134,12 +139,15 @@
   </section>
 
   <section id="app" class="hidden">
-    <nav class="tabs" role="tablist">
+    <div class="menu">
+    <button class="mbtn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuList"><span class="cur" id="menuCur"></span><span class="chev" aria-hidden="true">▾</span></button>
+    <nav class="tabs hidden" id="menuList">
       <button role="tab" data-tab="anuncios"><span class="ic" aria-hidden="true">📣</span>Anuncios</button>
       <button role="tab" data-tab="cena"><span class="ic" aria-hidden="true">📅</span>Fechas</button>
       <button role="tab" data-tab="amigo"><span class="ic" aria-hidden="true">🎁</span>Amigo invisible</button>
       <button role="tab" data-tab="votaciones"><span class="ic" aria-hidden="true">🗳️</span>Votaciones</button>
     </nav>
+    </div>
 
     <div id="tab-cena">
     <div class="card">
@@ -306,7 +314,10 @@ function renderCena() {
 }
 
 function render() {
-  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+  for (const b of document.querySelectorAll('.tabs button')) {
+    b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+    if (b.dataset.tab === tab) $('menuCur').innerHTML = b.innerHTML;
+  }
   for (const t of TABS) $('tab-' + t).classList.toggle('hidden', t !== tab);
   $('subtitle').textContent = SUBTITLES[tab];
   renderCena();
@@ -478,7 +489,7 @@ async function post(url, body) {
 function alertBox(msg) {
   const el = document.createElement('div');
   el.className = 'card';
-  el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));max-width:608px;margin:0 auto;border-color:var(--no);color:var(--no);z-index:10';
+  el.style.cssText = 'position:fixed;left:16px;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));max-width:608px;margin:0 auto;border-color:var(--no);color:var(--no);z-index:10';
   el.textContent = msg;
   document.body.appendChild(el);
   setTimeout(() => el.remove(), 3000);
@@ -523,8 +534,16 @@ async function enter(c) {
 }
 
 for (const b of document.querySelectorAll('.tabs button')) {
-  b.onclick = () => { tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); render(); window.scrollTo(0, 0); };
+  b.onclick = () => { tab = b.dataset.tab; history.replaceState(null, '', '#' + tab); setMenu(false); render(); window.scrollTo(0, 0); };
 }
+
+function setMenu(open) {
+  $('menuList').classList.toggle('hidden', !open);
+  $('menuBtn').setAttribute('aria-expanded', String(open));
+}
+$('menuBtn').onclick = (e) => { e.stopPropagation(); setMenu($('menuList').classList.contains('hidden')); };
+document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) setMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
 
 $('loginForm').onsubmit = (e) => { e.preventDefault(); enter($('codeInput').value); };
 $('logout').onclick = () => { try { localStorage.removeItem('code'); } catch {} code = ''; state = null; enter(''); };
