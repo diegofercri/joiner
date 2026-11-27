@@ -37,6 +37,8 @@
   .btnRow button { margin: 0 !important; }
   .opt a { color: var(--accent); font-weight: 600; text-decoration: none; white-space: nowrap; }
   select { -webkit-appearance: none; appearance: none; padding-right: 34px; background-image: var(--chev); background-repeat: no-repeat; background-position: right 12px center; }
+  input[type=date], input[type=time] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 46px; text-align: left; }
+  input[type=date]::-webkit-date-and-time-value, input[type=time]::-webkit-date-and-time-value { text-align: left; }
   input[type=datetime-local] { -webkit-appearance: none; appearance: none; display: block; min-width: 0; max-width: 100%; min-height: 46px; text-align: left; }
   input[type=datetime-local]::-webkit-date-and-time-value { text-align: left; }
   button { padding: 10px 14px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font-weight: 600; cursor: pointer; }
@@ -51,8 +53,8 @@
   #add, #exAdd, #sDraw, #sReset, #createPoll, .pollDel, #loginForm button { display: block; margin-left: auto; margin-top: 16px; }
   .hidden { display: none; }
   .err { color: var(--bad); min-height: 1.2em; margin-top: 6px; }
-  .tabs { display: flex; gap: 4px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
-  .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 8px; white-space: nowrap; border-radius: 9px; background: none; color: var(--muted); font-size: .9rem; }
+  .tabs { display: flex; gap: 2px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 4px; white-space: nowrap; border-radius: 9px; background: none; color: var(--muted); font-size: .82rem; }
   .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
   .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
   .check input { width: 18px; height: 18px; accent-color: var(--accent); }
@@ -83,6 +85,7 @@
       <button data-tab="personas">Personas</button>
       <button data-tab="amigo">Amigo invisible</button>
       <button data-tab="votaciones">Votaciones</button>
+      <button data-tab="anuncios">Anuncios</button>
     </nav>
 
     <div id="tab-personas" class="card">
@@ -105,6 +108,23 @@
         <div class="btnRow"><button class="ghost hidden" id="cancelEdit">Cancelar</button><button id="createPoll">Crear votación</button></div>
       </div>
       <div id="pollList"></div>
+    </div>
+
+    <div id="tab-anuncios" class="hidden">
+      <div class="card">
+        <h2 id="evFormTitle">Nuevo anuncio</h2>
+        <div class="field"><label for="et">Título</label><input id="et" maxlength="120" placeholder="Cena de Navidad"></div>
+        <div class="field"><label for="ed">Fecha</label><input id="ed" type="date"></div>
+        <div class="two">
+          <div class="field"><label for="eh">Hora (opcional)</label><input id="eh" type="time"></div>
+          <div class="field"><label for="ee">Hasta (opcional)</label><input id="ee" type="time"></div>
+        </div>
+        <div class="field"><label for="ea">Dirección (opcional)</label><input id="ea" maxlength="200" placeholder="Restaurante Casa Pepe, Calle Mayor 1, Madrid"></div>
+        <div class="field"><label for="en">Notas (opcional)</label><textarea id="en" maxlength="1000" placeholder="Menú cerrado a 35 €. Traed el regalo del amigo invisible."></textarea></div>
+        <p class="muted hint">Todos lo verán en la pestaña Anuncios, con un botón para añadirlo al calendario y otro para abrir la dirección en el mapa.</p>
+        <div class="btnRow"><button class="ghost hidden" id="evCancel">Cancelar</button><button id="evSave">Publicar anuncio</button></div>
+      </div>
+      <div id="evList"></div>
     </div>
   </section>
 </main>
@@ -143,11 +163,65 @@ async function act(path, body) {
 
 function render() {
   for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
-  for (const t of ['personas', 'amigo', 'votaciones']) $('tab-' + t).classList.toggle('hidden', t !== tab);
+  for (const t of ['personas', 'amigo', 'votaciones', 'anuncios']) $('tab-' + t).classList.toggle('hidden', t !== tab);
   renderPeople();
   renderSanta();
   renderPolls();
+  renderEvents();
 }
+
+function longDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  const t = new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+let editingEvent = null;
+
+function renderEvents() {
+  const box = $('evList');
+  box.innerHTML = '';
+  for (const e of data.events) {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const hours = e.time ? (e.endTime ? `de ${e.time} a ${e.endTime}` : `a las ${e.time}`) : 'todo el día';
+    card.innerHTML = `<h2>${esc(e.title)}</h2>
+      <p class="muted">${longDate(e.date)}, ${hours}</p>
+      ${e.address ? `<p>📍 ${esc(e.address)}</p>` : ''}
+      ${e.notes ? `<p class="muted" style="white-space:pre-line">${esc(e.notes)}</p>` : ''}
+      <div class="btnRow"><button class="ghost small evEdit">Editar</button><button class="ghost small evDel">Borrar anuncio</button></div>`;
+    card.querySelector('.evEdit').onclick = () => {
+      editingEvent = e.id;
+      $('et').value = e.title; $('ed').value = e.date; $('eh').value = e.time; $('ee').value = e.endTime;
+      $('ea').value = e.address; $('en').value = e.notes;
+      $('evFormTitle').textContent = 'Editar anuncio';
+      $('evSave').textContent = 'Guardar cambios';
+      $('evCancel').classList.remove('hidden');
+      $('evFormTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    card.querySelector('.evDel').onclick = () => {
+      if (confirm(`¿Borrar el anuncio "${e.title}"?`)) act('/api/admin/event/delete', { id: e.id });
+    };
+    box.appendChild(card);
+  }
+}
+
+function resetEventForm() {
+  editingEvent = null;
+  for (const id of ['et', 'ed', 'eh', 'ee', 'ea', 'en']) $(id).value = '';
+  $('evFormTitle').textContent = 'Nuevo anuncio';
+  $('evSave').textContent = 'Publicar anuncio';
+  $('evCancel').classList.add('hidden');
+}
+
+$('evCancel').onclick = resetEventForm;
+$('evSave').onclick = async () => {
+  const body = { title: $('et').value, date: $('ed').value, time: $('eh').value, endTime: $('ee').value, address: $('ea').value, notes: $('en').value };
+  const ok = editingEvent
+    ? await act('/api/admin/event/edit', { id: editingEvent, ...body })
+    : await act('/api/admin/event', body);
+  if (ok) resetEventForm();
+};
 
 function renderPeople() {
   const box = $('list');
