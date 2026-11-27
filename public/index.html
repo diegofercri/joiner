@@ -313,6 +313,7 @@ function render() {
 }
 
 const upcomingEvents = () => state.events.filter((e) => e.date >= today);
+const santaNews = () => state.santa.enabled && state.santa.drawn;
 
 function linkify(s) {
   return esc(s).replace(/https?:\/\/[^\s<]+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
@@ -336,12 +337,29 @@ function gcalUrl(e) {
 
 function renderEvents() {
   const box = $('events');
-  if (!state.events.length) {
+  if (!state.events.length && !santaNews()) {
     box.innerHTML = '<div class="card"><h2>Anuncios</h2><p class="muted">Todavía no hay nada anunciado. Cuando Diego cierre la cena u otro plan, aparecerá aquí.</p></div>';
     return;
   }
   const list = [...upcomingEvents(), ...state.events.filter((e) => e.date < today).reverse()];
   box.innerHTML = '';
+  if (santaNews()) {
+    const s = state.santa;
+    const card = document.createElement('div');
+    card.className = 'card event';
+    card.innerHTML = `<h3>🎁 Ya está hecho el sorteo del amigo invisible</h3>
+      <dl class="evFacts">
+        ${s.budget ? `<dt aria-label="Presupuesto">💶</dt><dd>Presupuesto: <b>${esc(s.budget)}</b></dd>` : ''}
+        ${s.date ? `<dt aria-label="Entrega">📅</dt><dd>Entrega: <b>${esc(s.date)}</b></dd>` : ''}
+        <dt aria-label="Participantes">👥</dt><dd>Participan ${s.participants.length}</dd>
+      </dl>
+      ${s.gift
+        ? '<div class="evBtns"><button class="btn" id="seeGift">Ver a quién me toca</button></div>'
+        : '<p class="evNotes muted">No te apuntaste a este sorteo.</p>'}`;
+    box.appendChild(card);
+    const btn = card.querySelector('#seeGift');
+    if (btn) btn.onclick = () => { tab = 'amigo'; history.replaceState(null, '', '#amigo'); render(); window.scrollTo(0, 0); };
+  }
   for (const e of list) {
     const past = e.date < today;
     const card = document.createElement('div');
@@ -491,7 +509,7 @@ async function enter(c) {
     if (location.search) history.replaceState(null, '', location.pathname + location.hash);
     $('login').classList.add('hidden');
     $('app').classList.remove('hidden');
-    if (!tab) tab = upcomingEvents().length ? 'anuncios' : 'cena';
+    if (!tab) tab = upcomingEvents().length || santaNews() ? 'anuncios' : 'cena';
     render();
   } catch (e) {
     try { localStorage.removeItem('code'); } catch {}
