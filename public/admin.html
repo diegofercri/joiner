@@ -53,9 +53,17 @@
   #add, #exAdd, #sDraw, #sReset, #createPoll, .pollDel, #loginForm button { display: block; margin-left: auto; margin-top: 16px; }
   .hidden { display: none; }
   .err { color: var(--bad); min-height: 1.2em; margin-top: 6px; }
-  .tabs { display: flex; gap: 2px; padding: 4px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
-  .tabs button { flex: 1 1 auto; min-width: 0; padding: 9px 4px; white-space: nowrap; border-radius: 9px; background: none; color: var(--muted); font-size: .82rem; }
-  .tabs button[aria-selected="true"] { background: var(--accent); color: #fff; }
+  .menu { position: relative; }
+  .mbtn { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--ink); font-weight: 600; }
+  .mbtn .cur { display: flex; align-items: center; gap: 8px; }
+  .mbtn .chev { color: var(--muted); font-size: 1.1rem; line-height: 1; transition: transform .15s; }
+  .mbtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .tabs { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 9; display: grid; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, .35); }
+  .tabs.hidden { display: none; }
+  .tabs button { display: flex; align-items: center; gap: 10px; padding: 13px 14px; border: 0; border-top: 1px solid var(--line); border-radius: 0; background: none; color: var(--ink); font-weight: 400; text-align: left; }
+  .tabs button:first-child { border-top: 0; }
+  .tabs button .ic, .mbtn .ic { font-size: 1.15rem; line-height: 1; }
+  .tabs button[aria-selected="true"] { color: var(--accent); font-weight: 600; }
   .check { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
   .check input { width: 18px; height: 18px; accent-color: var(--accent); }
   .field { margin-top: 10px; }
@@ -81,12 +89,15 @@
   </section>
 
   <section id="panel" class="hidden">
-    <nav class="tabs">
-      <button data-tab="personas">Personas</button>
-      <button data-tab="amigo">Amigo invisible</button>
-      <button data-tab="votaciones">Votaciones</button>
-      <button data-tab="anuncios">Anuncios</button>
+    <div class="menu">
+    <button class="mbtn" id="menuBtn" aria-haspopup="true" aria-expanded="false" aria-controls="menuList"><span class="cur" id="menuCur"></span><span class="chev" aria-hidden="true">▾</span></button>
+    <nav class="tabs hidden" id="menuList">
+      <button data-tab="personas"><span class="ic" aria-hidden="true">👥</span>Personas</button>
+      <button data-tab="amigo"><span class="ic" aria-hidden="true">🎁</span>Amigo invisible</button>
+      <button data-tab="votaciones"><span class="ic" aria-hidden="true">🗳️</span>Votaciones</button>
+      <button data-tab="anuncios"><span class="ic" aria-hidden="true">📣</span>Anuncios</button>
     </nav>
+    </div>
 
     <div id="tab-personas" class="card">
       <p class="muted">Pon un nombre a cada código y pásale a cada persona su enlace por privado. El enlace general sin código es <b id="base"></b>: quien entre ahí tendrá que escribir su código.</p>
@@ -162,7 +173,10 @@ async function act(path, body) {
 }
 
 function render() {
-  for (const b of document.querySelectorAll('.tabs button')) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+  for (const b of document.querySelectorAll('.tabs button')) {
+    b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+    if (b.dataset.tab === tab) $('menuCur').innerHTML = b.innerHTML;
+  }
   for (const t of ['personas', 'amigo', 'votaciones', 'anuncios']) $('tab-' + t).classList.toggle('hidden', t !== tab);
   renderPeople();
   renderSanta();
@@ -384,7 +398,15 @@ $('createPoll').onclick = async () => {
   if (ok) resetPollForm();
 };
 
-for (const b of document.querySelectorAll('.tabs button')) b.onclick = () => { tab = b.dataset.tab; render(); };
+for (const b of document.querySelectorAll('.tabs button')) b.onclick = () => { tab = b.dataset.tab; setMenu(false); render(); window.scrollTo(0, 0); };
+
+function setMenu(open) {
+  $('menuList').classList.toggle('hidden', !open);
+  $('menuBtn').setAttribute('aria-expanded', String(open));
+}
+$('menuBtn').onclick = (e) => { e.stopPropagation(); setMenu($('menuList').classList.contains('hidden')); };
+document.addEventListener('click', (e) => { if (!e.target.closest('.menu')) setMenu(false); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setMenu(false); });
 
 async function start() {
   try {
