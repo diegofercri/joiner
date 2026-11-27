@@ -3,7 +3,7 @@
 Web sencilla para organizar La Navidad de los uVes. Cada persona entra con su código y tiene cuatro pestañas:
 
 - **Anuncios:** los planes ya cerrados (fecha, hora, dirección y notas), con botón para añadirlos al calendario (`.ics`, sirve en iPhone) o a Google Calendar.
-- **Cena:** marca en un calendario los días que puede (sí, regular o no) y ve la disponibilidad de todos.
+- **Fechas:** marca en un calendario los días que puede (sí, regular o no) y ve la disponibilidad de todos.
 - **Amigo invisible:** se apunta si quiere y, tras el sorteo, ve solo a quién le toca regalar.
 - **Votaciones:** vota en las encuestas abiertas (una o varias opciones) y puede cambiar el voto hasta el cierre. Si una opción lleva enlace (por ejemplo, la ficha de un restaurante), se abre con "Ver ↗".
 
